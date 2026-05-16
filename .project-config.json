@@ -1,0 +1,43 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "server",
+    "db",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://4THessmhkDkrK6j.root:5cejo1tex2RQ0Y8qXgk6@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/Znr8SnHM5hAuzyBJfySgxT?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": [
+    "no_db_push"
+  ],
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663660366727/Znr8SnHM5hAuzyBJfySgxT",
+    "access_key_id": "ASIAZV3A2ECZLZHJIMXB",
+    "secret_access_key": "JcEkHge5aIy0ZHlcsk5bmsLyDp+RChPg1cRj1wJa",
+    "session_token": "IQoJb3JpZ2luX2VjEMX//////////wEaCXVzLWVhc3QtMSJHMEUCIE3U5uYT2YKWrhY5DqZVhdKnpcrm112+xxa7hIzglbWQAiEAtuqzUKzRKtZnkSxvCD2kN293gTFwAfUHQhMM50mDja0q/gMIjv//////////ARAEGgw2NjUzODYwOTg4NjYiDHpHx+lnnHmaBfsdACrSA5FDFWwZEnQA+x1Vcu4nXNZug9Om1F+dX38fotbuazb9JI/pfaGhUM82GiHdyO1SUrcgJyVNCVHmfYs6m7/zvrOsnRxMickuDb+ziSiSQUdsXYfs4114tJyzwxfJd6NtINHsyqCFJhN9zwTZPiFFpX85VBDXsdTzUSH220Dvr8pOw9DFZzdx8oGHS45sHeYMQMM80ytqFz4SoZQ6igPFqL5qQ786rXtY8yKZzjziqytzqI5z5HLt9XUyaq9pBiPi8ZZUD8ybIMTHu14CePfgvqto6SltHazCOgTOOgJ5EVGqOfTim6r6JsS8AwsiUvb8fE0iaXFpZSW+1DHyllBj95hi/6kw+HgiINGq6Bs9sIdi4XHm33Mo77rMMAGE3nvgMoJeF7YIimeM8afjgah7vV1R2FpQoQIU5YSVD2y4jf3SRyLurxTnhE6vQJUF+9ubh7EaXxWVn2X35vWJgNigszotAe7LZww5QK+Ah6dFLo7mO7O1g4MHZSsYnpDgvBAm8qnL3Yor/6EoXc/mXw+MXi4yD8CQBm7UedpnEWbBRjSWNGcGFeH5j4po5RdKITVfht+I4ayrvCPsEz5g6I5Z523GTtvlqUOCgncYZyRGOJx8pWQwz8Wh0AY6nQE/0xvVlR0vLRvqyJY0Cq/oBqiXO6DHSX5vUkyschffw5btGccjlxwXhEw3b023OOX3rh5Fds47E7VqrDr9nvIsaVlzMsdtgxyhrh8OBNuJ/+0W1Y9eaew08yA0sfo+CTWEDmq+P9KGqE0nQEDMPi8LcNCpK5PB6cgovBBKGPK/scEBpYbTyRvQCyhI9a+Og7AkLF3/msse3DOzBujX",
+    "expiration": "2026-05-17T00:27:59.000Z"
+  },
+  "name": "circle-bulletin-board",
+  "path": "/home/ubuntu/circle-bulletin-board",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "dqs29Jz6Sz8LRXNDLBzbUw",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "JWT_SECRET": "kqttKbWYbuFVvWyTgMzzDW",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "おはぎ",
+    "OWNER_OPEN_ID": "amhzwwUrEezuqfeQMYG3dr",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "ec7858e0-9f06-4c84-a742-5f22f2b18b3d",
+    "VITE_APP_ID": "Znr8SnHM5hAuzyBJfySgxT",
+    "VITE_APP_LOGO": "",
+    "VITE_APP_TITLE": "サークル開発記録掲示板",
+    "VITE_FRONTEND_FORGE_API_KEY": "2XN2jTJoUYcFr3DyBgzTgf",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im"
+  },
+  "template_id": "web-db-user",
+  "test_command": "pnpm test"
+}
