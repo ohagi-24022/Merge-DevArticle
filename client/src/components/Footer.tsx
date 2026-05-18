@@ -41,7 +41,7 @@ export default function Footer() {
             <h4 className="text-sm font-semibold">リンク</h4>
             <nav className="flex flex-col gap-2">
               <a
-                href="https://x.com"
+                href="https://x.com/merge628216?s=21"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
