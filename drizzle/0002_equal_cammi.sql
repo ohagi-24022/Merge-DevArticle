@@ -1,0 +1,1 @@
+ALTER TABLE `github_repos` MODIFY COLUMN `createdAt` bigint NOT NULL;

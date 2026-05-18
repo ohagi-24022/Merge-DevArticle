@@ -1,28 +1,283 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import {
+  createPost,
+  getPostById,
+  getLatestPosts,
+  listPosts,
+  getPostsByUserId,
+  updatePost,
+  deletePost,
+  getUserById,
+  updateUserProfile,
+  getAllUsers,
+  getGithubReposByUserId,
+  addGithubRepo,
+  removeGithubRepo,
+} from "./db";
+import { invokeLLM } from "./_core/llm";
+import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // ─── User profile ──────────────────────────────────────
+  user: router({
+    getProfile: publicProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const user = await getUserById(input.userId);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        return {
+          id: user.id,
+          name: user.name,
+          bio: user.bio,
+          avatarUrl: user.avatarUrl,
+          createdAt: user.createdAt.getTime(),
+        };
+      }),
+
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(50).optional(),
+        bio: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    listAll: publicProcedure.query(async () => {
+      return getAllUsers();
+    }),
+  }),
+
+  // ─── Posts ─────────────────────────────────────────────
+  post: router({
+    latest: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(10).optional() }).optional())
+      .query(async ({ input }) => {
+        return getLatestPosts(input?.limit ?? 3);
+      }),
+
+    list: publicProcedure
+      .input(z.object({
+        sortOrder: z.enum(["asc", "desc"]).optional(),
+        authorId: z.number().optional(),
+        search: z.string().optional(),
+        page: z.number().min(1).optional(),
+        pageSize: z.number().min(1).max(50).optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return listPosts({
+          sortOrder: input?.sortOrder,
+          authorId: input?.authorId,
+          search: input?.search,
+          page: input?.page,
+          pageSize: input?.pageSize,
+        });
+      }),
+
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const post = await getPostById(input.id);
+        if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+        return post;
+      }),
+
+    getByUser: publicProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        return getPostsByUserId(input.userId);
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1).max(255),
+        body: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return createPost({
+          userId: ctx.user.id,
+          title: input.title,
+          body: input.body,
+        });
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().min(1).max(255),
+        body: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const post = await getPostById(input.id);
+        if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+        if (post.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You can only edit your own posts" });
+        }
+        return updatePost(input.id, ctx.user.id, {
+          title: input.title,
+          body: input.body,
+        });
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const post = await getPostById(input.id);
+        if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+        if (post.userId !== ctx.user.id && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You can only delete your own posts" });
+        }
+        await deletePost(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── AI article generation ─────────────────────────────
+  ai: router({
+    generateArticle: protectedProcedure
+      .input(z.object({
+        bulletPoints: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `あなたは開発日記の執筆アシスタントです。ユーザーが箇条書きで入力した開発内容をもとに、読みやすく整った開発日記の記事を生成してください。
+以下のルールに従ってください：
+- 文体は「です・ます調」で統一
+- 見出しや段落を適切に使い、読みやすい構成にする
+- 技術的な内容は正確に記述する
+- 記事のタイトルも提案する（1行目に「# タイトル」の形式で）
+- Markdown形式で出力する`,
+            },
+            {
+              role: "user",
+              content: `以下の開発内容をもとに、開発日記の記事を生成してください：\n\n${input.bulletPoints}`,
+            },
+          ],
+        });
+        const content = response.choices[0]?.message?.content;
+        const text = typeof content === "string" ? content : "";
+        return { article: text };
+      }),
+
+    analyzeGithubDiff: protectedProcedure
+      .input(z.object({
+        repoOwner: z.string(),
+        repoName: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        // Fetch recent commits from GitHub API (public repos, no auth needed)
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const commitsUrl = `https://api.github.com/repos/${input.repoOwner}/${input.repoName}/commits?since=${since}&per_page=20`;
+
+        const commitsRes = await fetch(commitsUrl, {
+          headers: { "Accept": "application/vnd.github.v3+json", "User-Agent": "CircleBulletinBoard" },
+        });
+
+        if (!commitsRes.ok) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `GitHub APIエラー: ${commitsRes.status} - リポジトリが見つからないか、アクセスできません`,
+          });
+        }
+
+        const commits = await commitsRes.json() as Array<{
+          sha: string;
+          commit: { message: string; author: { name: string; date: string } };
+        }>;
+
+        if (commits.length === 0) {
+          return { analysis: "過去24時間以内のコミットは見つかりませんでした。" };
+        }
+
+        // Fetch diff for each commit (limited to first 5)
+        const diffs: string[] = [];
+        for (const commit of commits.slice(0, 5)) {
+          const diffUrl = `https://api.github.com/repos/${input.repoOwner}/${input.repoName}/commits/${commit.sha}`;
+          const diffRes = await fetch(diffUrl, {
+            headers: {
+              "Accept": "application/vnd.github.v3.diff",
+              "User-Agent": "CircleBulletinBoard",
+            },
+          });
+          if (diffRes.ok) {
+            const diffText = await diffRes.text();
+            diffs.push(`### Commit: ${commit.commit.message}\n${diffText.slice(0, 3000)}`);
+          }
+        }
+
+        const commitSummary = commits
+          .map((c) => `- ${c.commit.message} (by ${c.commit.author.name}, ${c.commit.author.date})`)
+          .join("\n");
+
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `あなたは開発日記の執筆アシスタントです。GitHubリポジトリの過去24時間のコミット履歴とコード差分を分析し、開発日記の箇条書きメモを生成してください。
+以下のルールに従ってください：
+- 変更内容を分かりやすく要約する
+- 技術的な変更点を具体的に記述する
+- 箇条書き形式で出力する
+- 日本語で出力する`,
+            },
+            {
+              role: "user",
+              content: `リポジトリ: ${input.repoOwner}/${input.repoName}\n\n## コミット履歴\n${commitSummary}\n\n## コード差分\n${diffs.join("\n\n")}`,
+            },
+          ],
+        });
+
+        const content = response.choices[0]?.message?.content;
+        const text = typeof content === "string" ? content : "";
+        return { analysis: text };
+      }),
+  }),
+
+  // ─── GitHub repos ──────────────────────────────────────
+  github: router({
+    listRepos: protectedProcedure.query(async ({ ctx }) => {
+      return getGithubReposByUserId(ctx.user.id);
+    }),
+
+    addRepo: protectedProcedure
+      .input(z.object({
+        repoOwner: z.string().min(1),
+        repoName: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return addGithubRepo({
+          userId: ctx.user.id,
+          repoOwner: input.repoOwner,
+          repoName: input.repoName,
+        });
+      }),
+
+    removeRepo: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await removeGithubRepo(input.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
