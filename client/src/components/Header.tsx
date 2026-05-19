@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
+import { MergeLogo } from "@/components/MergeLogo";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BookOpen, PenLine, User, LogOut, Menu, X, List } from "lucide-react";
+import { Home, PenLine, User, LogOut, Menu, X, List } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 
@@ -18,7 +19,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: "/", label: "ホーム", icon: BookOpen },
+    { href: "/", label: "ホーム", icon: Home },
     { href: "/posts", label: "投稿一覧", icon: List },
     ...(isAuthenticated
       ? [
@@ -35,18 +36,21 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+      <div className="h-0.5 merge-split-bar" aria-hidden />
       <div className="container flex h-16 items-center justify-between">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform duration-150 group-hover:scale-[0.97] group-active:scale-95">
-            <BookOpen className="h-5 w-5" />
+          <MergeLogo
+            size="md"
+            className="transition-transform duration-150 group-hover:scale-[0.97] group-active:scale-95"
+          />
+          <div className="hidden sm:flex flex-col leading-tight">
+            <span className="text-base font-bold italic tracking-tight">Merge</span>
+            <span className="text-[11px] text-muted-foreground font-medium">
+              開発記録
+            </span>
           </div>
-          <span className="text-lg font-semibold tracking-tight hidden sm:inline font-serif">
-            Dev Diary
-          </span>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href}>
@@ -62,16 +66,11 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Auth / User */}
         <div className="flex items-center gap-2">
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 font-medium"
-                >
+                <Button variant="ghost" size="sm" className="gap-2 font-medium">
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
                     {user.name?.charAt(0)?.toUpperCase() || "U"}
                   </div>
@@ -109,7 +108,6 @@ export default function Header() {
             </Button>
           )}
 
-          {/* Mobile menu toggle */}
           <Button
             variant="ghost"
             size="sm"
@@ -125,7 +123,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Nav */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-xl">
           <nav className="container py-3 flex flex-col gap-1">

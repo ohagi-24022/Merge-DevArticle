@@ -13,12 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
+import { MergeLogo } from "@/components/MergeLogo";
 import {
   Search,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
 } from "lucide-react";
 
 export default function PostList() {
@@ -163,7 +163,7 @@ export default function PostList() {
             </>
           ) : (
             <div className="text-center py-20 border border-dashed rounded-xl">
-              <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+              <MergeLogo size="lg" className="mx-auto mb-3 opacity-60" />
               <p className="text-muted-foreground">
                 {search || authorId
                   ? "条件に一致する投稿が見つかりませんでした"

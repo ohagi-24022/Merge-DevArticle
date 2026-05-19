@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
-import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save, BookOpen } from "lucide-react";
+import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save } from "lucide-react";
+import { MergeLogo } from "@/components/MergeLogo";
 import { toast } from "sonner";
 
 export default function Account() {
@@ -147,7 +148,7 @@ export default function Account() {
             </div>
           ) : (
             <div className="text-center py-16 border border-dashed rounded-xl">
-              <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+              <MergeLogo size="lg" className="mx-auto mb-3 opacity-60" />
               <p className="text-muted-foreground">まだ投稿がありません</p>
             </div>
           )}
