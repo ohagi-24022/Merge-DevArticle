@@ -1,14 +1,42 @@
 import { eq, desc, asc, like, or, sql, and } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users, posts, githubRepos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: MySql2Database | null = null;
+
+function isTiDbServerless(url: string): boolean {
+  return url.includes("tidbcloud.com") || ENV.databaseSsl;
+}
+
+function createDatabasePool(): mysql.Pool {
+  const url = ENV.databaseUrl;
+  if (!url) {
+    throw new Error("DATABASE_URL is not configured");
+  }
+
+  const useSsl = isTiDbServerless(url);
+
+  return mysql.createPool({
+    uri: url,
+    waitForConnections: true,
+    connectionLimit: 10,
+    ...(useSsl
+      ? {
+          ssl: {
+            minVersion: "TLSv1.2",
+            rejectUnauthorized: true,
+          },
+        }
+      : {}),
+  });
+}
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db && ENV.databaseUrl) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(createDatabasePool());
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -31,7 +59,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   try {
     const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "loginMethod", "avatarUrl", "bio"] as const;
     type TextField = (typeof textFields)[number];
     const assignNullable = (field: TextField) => {
       const value = user[field];
@@ -48,7 +76,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
+    } else if (
+      ENV.ownerGithubId &&
+      user.openId === `github:${ENV.ownerGithubId}`
+    ) {
       values.role = "admin";
       updateSet.role = "admin";
     }
@@ -187,7 +218,6 @@ export async function listPosts(opts?: {
   const offset = (page - 1) * pageSize;
   const order = opts?.sortOrder === "asc" ? asc(posts.updatedAt) : desc(posts.updatedAt);
 
-  // Build where conditions
   const conditions = [];
   if (opts?.authorId) {
     conditions.push(eq(posts.userId, opts.authorId));
@@ -303,7 +333,6 @@ export async function addGithubRepo(data: {
 export async function removeGithubRepo(repoId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  // Only delete if the repo belongs to the user
   const repo = await db
     .select()
     .from(githubRepos)

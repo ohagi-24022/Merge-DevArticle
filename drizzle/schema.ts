@@ -5,6 +5,7 @@ import { bigint, boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar }
  */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
+  /** OAuth subject id, e.g. github:12345 */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
