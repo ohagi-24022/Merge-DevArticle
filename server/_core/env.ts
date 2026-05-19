@@ -9,9 +9,11 @@ export const ENV = {
   githubClientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
   ownerGithubId: process.env.OWNER_GITHUB_ID ?? "",
 
-  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
-  openaiApiUrl: process.env.OPENAI_API_URL ?? "https://api.openai.com/v1",
-  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  geminiApiUrl:
+    process.env.GEMINI_API_URL ??
+    "https://generativelanguage.googleapis.com/v1beta",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
 
   s3Bucket: process.env.S3_BUCKET ?? "",
   s3Region: process.env.AWS_REGION ?? "us-east-1",

@@ -9,8 +9,6 @@ primary_region = 'nrt'
 [build]
   dockerfile = 'Dockerfile'
 
-[deploy]
-  release_command = 'pnpm db:push'
 
 [env]
   NODE_ENV = 'production'

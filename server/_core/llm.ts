@@ -90,29 +90,87 @@ export type InvokeResult = {
   }>;
 };
 
-const normalizeMessage = (message: Message) => {
-  if (typeof message.content === "string") {
-    return message;
+type GeminiPart = { text: string };
+type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
+
+const extractText = (content: MessageContent | MessageContent[]): string => {
+  if (typeof content === "string") {
+    return content;
   }
-  if (Array.isArray(message.content)) {
-    return {
-      ...message,
-      content: message.content.map((part) => {
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
         if (typeof part === "string") {
-          return { type: "text", text: part };
+          return part;
         }
-        return part;
-      }),
+        if (part.type === "text") {
+          return part.text;
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (content.type === "text") {
+    return content.text;
+  }
+  return "";
+};
+
+const toGeminiRole = (role: Role): "user" | "model" | null => {
+  if (role === "user") {
+    return "user";
+  }
+  if (role === "assistant") {
+    return "model";
+  }
+  return null;
+};
+
+const buildGeminiPayload = (
+  messages: Message[],
+  responseFormat?: ResponseFormat,
+) => {
+  const systemParts: string[] = [];
+  const contents: GeminiContent[] = [];
+
+  for (const message of messages) {
+    const text = extractText(message.content);
+    if (!text) {
+      continue;
+    }
+
+    if (message.role === "system") {
+      systemParts.push(text);
+      continue;
+    }
+
+    const role = toGeminiRole(message.role);
+    if (!role) {
+      contents.push({ role: "user", parts: [{ text: `[${message.role}]: ${text}` }] });
+      continue;
+    }
+
+    contents.push({ role, parts: [{ text }] });
+  }
+
+  const payload: Record<string, unknown> = { contents };
+  if (systemParts.length > 0) {
+    payload.systemInstruction = {
+      parts: [{ text: systemParts.join("\n\n") }],
     };
   }
-  return message;
+
+  if (responseFormat?.type === "json_object" || responseFormat?.type === "json_schema") {
+    payload.generationConfig = { responseMimeType: "application/json" };
+  }
+
+  return payload;
 };
 
 const normalizeResponseFormat = ({
   responseFormat,
   response_format,
-  outputSchema,
-  output_schema,
 }: {
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
@@ -121,8 +179,8 @@ const normalizeResponseFormat = ({
 }) => responseFormat || response_format || undefined;
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  if (!ENV.openaiApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+  if (!ENV.geminiApiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
   }
 
   const {
@@ -134,34 +192,25 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     response_format,
   } = params;
 
-  const payload: Record<string, unknown> = {
-    model: ENV.openaiModel,
-    messages: messages.map(normalizeMessage),
-  };
-
   if (tools && tools.length > 0) {
-    payload.tools = tools;
-    const choice = toolChoice || tool_choice;
-    if (choice) {
-      payload.tool_choice = choice;
-    }
+    throw new Error("Tool calling is not supported with Gemini in this app");
+  }
+  if (toolChoice || tool_choice) {
+    throw new Error("Tool choice is not supported with Gemini in this app");
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
     response_format,
   });
-  if (normalizedResponseFormat) {
-    payload.response_format = normalizedResponseFormat;
-  }
 
-  const baseUrl = ENV.openaiApiUrl.replace(/\/+$/, "");
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const payload = buildGeminiPayload(messages, normalizedResponseFormat);
+  const baseUrl = ENV.geminiApiUrl.replace(/\/+$/, "");
+  const url = `${baseUrl}/models/${ENV.geminiModel}:generateContent?key=${encodeURIComponent(ENV.geminiApiKey)}`;
+
+  const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.openaiApiKey}`,
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
   });
 
@@ -172,5 +221,26 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     );
   }
 
-  return (await response.json()) as InvokeResult;
+  const data = (await response.json()) as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
+  };
+
+  const text =
+    data.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text ?? "")
+      .join("")
+      .trim() ?? "";
+
+  return {
+    choices: [
+      {
+        message: {
+          role: "assistant",
+          content: text || null,
+        },
+      },
+    ],
+  };
 }
