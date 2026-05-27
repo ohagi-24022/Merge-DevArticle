@@ -25,7 +25,20 @@ export const appRouter = router({
   system: systemRouter,
 
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query((opts) => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+      // Return only non-sensitive fields to prevent email exposure in network requests
+      return {
+        id: user.id,
+        name: user.name,
+        bio: user.bio,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        createdAt: user.createdAt.getTime(),
+        updatedAt: user.updatedAt.getTime(),
+      };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

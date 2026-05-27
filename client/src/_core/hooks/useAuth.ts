@@ -42,7 +42,13 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem("app-user-info", JSON.stringify(meQuery.data));
+    // Store only non-sensitive user info in localStorage
+    if (meQuery.data) {
+      const { id, name, bio, avatarUrl, role, createdAt, updatedAt } = meQuery.data;
+      localStorage.setItem("app-user-info", JSON.stringify({ id, name, bio, avatarUrl, role, createdAt, updatedAt }));
+    } else {
+      localStorage.setItem("app-user-info", JSON.stringify(null));
+    }
     return {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
