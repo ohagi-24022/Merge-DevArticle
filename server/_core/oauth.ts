@@ -125,6 +125,8 @@ export function registerOAuthRoutes(app: Express) {
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "read:user user:email");
     url.searchParams.set("state", state);
+    // Encourage GitHub to re-prompt for the account on re-login (may be ignored depending on GitHub behavior).
+    url.searchParams.set("prompt", "select_account");
 
     res.redirect(302, url.toString());
   });
