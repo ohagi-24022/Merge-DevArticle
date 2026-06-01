@@ -125,8 +125,6 @@ export function registerOAuthRoutes(app: Express) {
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "read:user user:email");
     url.searchParams.set("state", state);
-    // Encourage GitHub to re-prompt for the account on re-login (may be ignored depending on GitHub behavior).
-    url.searchParams.set("prompt", "select_account");
 
     res.redirect(302, url.toString());
   });
@@ -159,8 +157,9 @@ export function registerOAuthRoutes(app: Express) {
         lastSignedIn: new Date(),
       });
 
+      const displayName = userInfo.name?.trim() || userInfo.openId;
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-        name: userInfo.name || "",
+        name: displayName,
         expiresInMs: ONE_YEAR_MS,
       });
 
@@ -169,8 +168,12 @@ export function registerOAuthRoutes(app: Express) {
 
       res.redirect(302, "/");
     } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[OAuth] Callback failed:", message, error);
+      res.status(500).json({
+        error: "OAuth callback failed",
+        ...(process.env.NODE_ENV === "development" ? { detail: message } : {}),
+      });
     }
   });
 }

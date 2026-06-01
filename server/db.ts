@@ -6,6 +6,31 @@ import { ENV } from "./_core/env";
 import { isAdminUserId } from "./config/admins";
 
 let _db: MySql2Database | null = null;
+let _pool: mysql.Pool | null = null;
+
+function isConnectionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes("econnreset") ||
+    msg.includes("econnrefused") ||
+    msg.includes("protocol_connection_lost") ||
+    msg.includes("connection lost") ||
+    msg.includes("can't add new command") ||
+    msg.includes("pool is closed") ||
+    msg.includes("connection expired") ||
+    msg.includes("gone away") ||
+    msg.includes("etimedout")
+  );
+}
+
+export function resetDbConnection() {
+  _db = null;
+  if (_pool) {
+    void _pool.end().catch(() => {});
+    _pool = null;
+  }
+}
 
 function isTiDbServerless(url: string): boolean {
   return url.includes("tidbcloud.com") || ENV.databaseSsl;
@@ -39,13 +64,35 @@ function createDatabasePool(): mysql.Pool {
 export async function getDb() {
   if (!_db && ENV.databaseUrl) {
     try {
-      _db = drizzle(createDatabasePool());
+      _pool = createDatabasePool();
+      _db = drizzle(_pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
-      _db = null;
+      resetDbConnection();
     }
   }
   return _db;
+}
+
+async function withDbRetry<T>(operation: (db: MySql2Database) => Promise<T>): Promise<T> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+  try {
+    return await operation(db);
+  } catch (error) {
+    if (!isConnectionError(error)) {
+      throw error;
+    }
+    console.warn("[Database] Connection error, resetting pool and retrying once");
+    resetDbConnection();
+    const retryDb = await getDb();
+    if (!retryDb) {
+      throw error;
+    }
+    return await operation(retryDb);
+  }
 }
 
 // ─── User helpers ────────────────────────────────────────────
@@ -54,12 +101,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
   try {
+    await withDbRetry(async (db) => {
     const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
     const textFields = ["name", "email", "loginMethod", "avatarUrl", "bio"] as const;
@@ -95,8 +138,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
+    });
 
-    await syncUserRoleFromConfig(user.openId);
+    try {
+      await syncUserRoleFromConfig(user.openId);
+    } catch (error) {
+      console.warn("[Database] Failed to sync admin role (non-fatal):", error);
+    }
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -104,17 +152,15 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
+  try {
+    const result = await withDbRetry((db) =>
+      db.select().from(users).where(eq(users.openId, openId)).limit(1),
+    );
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.warn("[Database] Cannot get user:", error);
     return undefined;
   }
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.openId, openId))
-    .limit(1);
-  return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserById(id: number) {

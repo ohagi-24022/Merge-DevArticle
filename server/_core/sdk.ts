@@ -63,11 +63,14 @@ class SessionService {
       });
       const { openId, name } = payload as Record<string, unknown>;
 
-      if (!isNonEmptyString(openId) || !isNonEmptyString(name)) {
+      if (!isNonEmptyString(openId)) {
         return null;
       }
 
-      return { openId, name };
+      return {
+        openId,
+        name: typeof name === "string" ? name : "",
+      };
     } catch {
       return null;
     }
@@ -89,12 +92,16 @@ class SessionService {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    try {
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt,
+      });
+      user = (await db.getUserByOpenId(session.openId)) ?? user;
+    } catch (error) {
+      console.warn("[Auth] Failed to refresh lastSignedIn (session still valid):", error);
+    }
 
-    user = (await db.getUserByOpenId(session.openId)) ?? user;
     return user;
   }
 }

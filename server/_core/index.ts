@@ -8,6 +8,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
+import { sql } from "drizzle-orm";
+import { getDb } from "../db";
 
 function verifyCronSecret(
   req: express.Request,
@@ -40,8 +42,19 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true });
+  app.get("/api/health", async (_req, res) => {
+    const db = await getDb();
+    if (!db) {
+      res.status(503).json({ ok: false, db: false });
+      return;
+    }
+    try {
+      await db.execute(sql`SELECT 1`);
+      res.json({ ok: true, db: true });
+    } catch (error) {
+      console.warn("[Health] Database ping failed:", error);
+      res.status(503).json({ ok: false, db: false });
+    }
   });
 
   registerStorageProxy(app);
