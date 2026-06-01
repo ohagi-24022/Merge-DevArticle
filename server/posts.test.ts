@@ -142,6 +142,51 @@ describe("post router", () => {
     ).rejects.toThrow();
   });
 
+  it("post.update allows admin to edit other user's post", async () => {
+    const ctx1 = createAuthContext({ id: 1, openId: "user-1" });
+    const caller1 = appRouter.createCaller(ctx1);
+    const created = await caller1.post.create({
+      title: "User 1 Post",
+      body: "User 1 body",
+    });
+
+    const adminCtx = createAuthContext({
+      id: 99,
+      openId: "admin-user",
+      role: "admin",
+    });
+    const adminCaller = appRouter.createCaller(adminCtx);
+    await adminCaller.post.update({
+      id: created.id,
+      title: "Admin Edit",
+      body: "Admin body",
+    });
+
+    const publicCaller = appRouter.createCaller(createPublicContext());
+    const updated = await publicCaller.post.getById({ id: created.id });
+    expect(updated.title).toBe("Admin Edit");
+  });
+
+  it("post.delete allows admin to delete other user's post", async () => {
+    const ctx1 = createAuthContext({ id: 1, openId: "user-1" });
+    const caller1 = appRouter.createCaller(ctx1);
+    const created = await caller1.post.create({
+      title: "To Delete",
+      body: "Body",
+    });
+
+    const adminCtx = createAuthContext({
+      id: 99,
+      openId: "admin-user",
+      role: "admin",
+    });
+    const adminCaller = appRouter.createCaller(adminCtx);
+    await adminCaller.post.delete({ id: created.id });
+
+    const publicCaller = appRouter.createCaller(createPublicContext());
+    await expect(publicCaller.post.getById({ id: created.id })).rejects.toThrow();
+  });
+
   it("post.list supports search", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -163,8 +208,14 @@ describe("post router", () => {
 });
 
 describe("user router", () => {
-  it("user.listAll returns an array", async () => {
-    const ctx = createPublicContext();
+  it("user.listAll requires admin", async () => {
+    const ctx = createAuthContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.user.listAll()).rejects.toThrow();
+  });
+
+  it("user.listAll returns an array for admin", async () => {
+    const ctx = createAuthContext({ role: "admin" });
     const caller = appRouter.createCaller(ctx);
     const result = await caller.user.listAll();
     expect(Array.isArray(result)).toBe(true);

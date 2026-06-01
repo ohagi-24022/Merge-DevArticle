@@ -42,7 +42,7 @@ export default function EditPost() {
   if (!post) {
     return (<div className="min-h-screen flex flex-col"><Header /><main className="flex-1 flex items-center justify-center"><div className="text-center"><p className="text-muted-foreground mb-4">投稿が見つかりませんでした</p><Link href="/posts"><Button variant="outline" className="bg-transparent">投稿一覧に戻る</Button></Link></div></main><Footer /></div>);
   }
-  if (user && post.userId !== user.id) {
+  if (user && post.userId !== user.id && user.role !== "admin") {
     return (<div className="min-h-screen flex flex-col"><Header /><main className="flex-1 flex items-center justify-center"><div className="text-center"><p className="text-muted-foreground mb-4">この投稿を編集する権限がありません</p><Link href={`/posts/${postId}`}><Button variant="outline" className="bg-transparent">投稿に戻る</Button></Link></div></main><Footer /></div>);
   }
 

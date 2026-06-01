@@ -3,6 +3,7 @@ import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, users, posts, githubRepos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { isAdminUserId } from "./config/admins";
 
 let _db: MySql2Database | null = null;
 
@@ -22,6 +23,8 @@ function createDatabasePool(): mysql.Pool {
     uri: url,
     waitForConnections: true,
     connectionLimit: 10,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
     ...(useSsl
       ? {
           ssl: {
@@ -92,6 +95,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
+
+    await syncUserRoleFromConfig(user.openId);
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -139,6 +144,39 @@ export async function getAllUsers() {
   return db
     .select({ id: users.id, name: users.name, openId: users.openId })
     .from(users);
+}
+
+/** Sync admin role from server/config/admins.ts and OWNER_GITHUB_ID after login. */
+export async function syncUserRoleFromConfig(openId: string) {
+  const db = await getDb();
+  if (!db) return;
+  const row = await getUserByOpenId(openId);
+  if (!row) return;
+
+  const shouldBeAdmin =
+    isAdminUserId(row.id) ||
+    Boolean(
+      ENV.ownerGithubId && row.openId === `github:${ENV.ownerGithubId}`,
+    );
+
+  if (shouldBeAdmin && row.role !== "admin") {
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, row.id));
+  }
+}
+
+export async function listUsersForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      role: users.role,
+      createdAt: users.createdAt,
+      lastSignedIn: users.lastSignedIn,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
 }
 
 // ─── Post helpers ────────────────────────────────────────────

@@ -5,14 +5,38 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { ArrowLeft, CalendarDays, User, PenLine, Clock } from "lucide-react";
-import { Link, useParams } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, CalendarDays, User, PenLine, Clock, Trash2 } from "lucide-react";
+import { Link, useParams, useLocation } from "wouter";
 import { Streamdown } from "streamdown";
+import { toast } from "sonner";
 
 export default function PostDetail() {
   const params = useParams<{ id: string }>();
   const postId = Number(params.id);
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
+
+  const deletePost = trpc.post.delete.useMutation({
+    onSuccess: () => {
+      toast.success("投稿を削除しました");
+      utils.post.list.invalidate();
+      utils.post.latest.invalidate();
+      setLocation("/posts");
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   const { data: post, isLoading } = trpc.post.getById.useQuery(
     { id: postId },
@@ -57,6 +81,7 @@ export default function PostDetail() {
   }
 
   const isOwner = user && user.id === post.userId;
+  const canManage = isOwner || user?.role === "admin";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,13 +105,49 @@ export default function PostDetail() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-serif leading-tight">
                   {post.title}
                 </h1>
-                {isOwner && (
-                  <Link href={`/edit/${post.id}`}>
-                    <Button variant="outline" size="sm" className="gap-1.5 shrink-0 bg-transparent">
-                      <PenLine className="h-3.5 w-3.5" />
-                      編集
-                    </Button>
-                  </Link>
+                {canManage && (
+                  <div className="flex gap-2 shrink-0">
+                    <Link href={`/edit/${post.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 bg-transparent"
+                      >
+                        <PenLine className="h-3.5 w-3.5" />
+                        編集
+                      </Button>
+                    </Link>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-destructive hover:text-destructive border-destructive/30"
+                          disabled={deletePost.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          削除
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>投稿を削除しますか？</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            この操作は取り消せません。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deletePost.mutate({ id: postId })}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            削除する
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 )}
               </div>
 

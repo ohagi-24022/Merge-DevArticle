@@ -4,7 +4,12 @@ import { getSessionCookieOptions } from "./_core/cookies";
 
 import { systemRouter } from "./_core/systemRouter";
 
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import {
+  publicProcedure,
+  protectedProcedure,
+  adminProcedure,
+  router,
+} from "./_core/trpc";
 
 import { z } from "zod";
 
@@ -28,7 +33,7 @@ import {
 
   updateUserProfile,
 
-  getAllUsers,
+  listUsersForAdmin,
 
   getGithubReposByUserId,
 
@@ -131,10 +136,15 @@ export const appRouter = router({
 
 
 
-    listAll: publicProcedure.query(async () => {
-
-      return getAllUsers();
-
+    listAll: adminProcedure.query(async () => {
+      const rows = await listUsersForAdmin();
+      return rows.map((u) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        createdAt: u.createdAt.getTime(),
+        lastSignedIn: u.lastSignedIn.getTime(),
+      }));
     }),
 
   }),
@@ -265,10 +275,11 @@ export const appRouter = router({
 
         if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
 
-        if (post.userId !== ctx.user.id) {
-
-          throw new TRPCError({ code: "FORBIDDEN", message: "You can only edit your own posts" });
-
+        if (post.userId !== ctx.user.id && ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You can only edit your own posts",
+          });
         }
 
         return updatePost(input.id, ctx.user.id, {
