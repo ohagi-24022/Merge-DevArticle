@@ -20,9 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save, Shield } from "lucide-react";
+import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save, Shield, Eye } from "lucide-react";
 import { MergeLogo } from "@/components/MergeLogo";
 import { toast } from "sonner";
+import { Link } from "wouter";
 
 export default function Account() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -193,19 +194,29 @@ export default function Account() {
                     maxLength={500}
                   />
                 </div>
-                <Button
-                  onClick={handleProfileSave}
-                  disabled={updateProfile.isPending}
-                  size="sm"
-                  className="gap-2"
-                >
-                  {updateProfile.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={handleProfileSave}
+                    disabled={updateProfile.isPending}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {updateProfile.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    保存
+                  </Button>
+                  {user?.id && (
+                    <Link href={`/users/${user.id}`}>
+                      <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                        <Eye className="h-4 w-4" />
+                        公開プロフィールを確認
+                      </Button>
+                    </Link>
                   )}
-                  保存
-                </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -297,6 +308,7 @@ export default function Account() {
                   title={post.title}
                   body={post.body}
                   isEdited={post.isEdited}
+                  viewCount={post.viewCount}
                   createdAt={post.createdAt}
                   onDelete={() => handleDeletePost(post.id)}
                   isDeleting={deletingPostId === post.id && deletePost.isPending}

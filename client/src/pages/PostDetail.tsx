@@ -16,10 +16,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, CalendarDays, User, PenLine, Clock, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Eye, User, PenLine, Clock, Trash2 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
+import { useEffect, useRef } from "react";
 
 export default function PostDetail() {
   const params = useParams<{ id: string }>();
@@ -27,6 +28,20 @@ export default function PostDetail() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
+  const recordedPostId = useRef<number | null>(null);
+
+  const recordView = trpc.post.recordView.useMutation({
+    onSuccess: ({ viewCount }) => {
+      utils.post.getById.setData({ id: postId }, (current) =>
+        current ? { ...current, viewCount } : current
+      );
+      utils.post.list.invalidate();
+      utils.post.latest.invalidate();
+      if (user?.id) {
+        utils.post.getByUser.invalidate({ userId: user.id });
+      }
+    },
+  });
 
   const deletePost = trpc.post.delete.useMutation({
     onSuccess: () => {
@@ -42,6 +57,12 @@ export default function PostDetail() {
     { id: postId },
     { enabled: !isNaN(postId) }
   );
+
+  useEffect(() => {
+    if (!post || recordedPostId.current === postId) return;
+    recordedPostId.current = postId;
+    recordView.mutate({ id: postId });
+  }, [post, postId]);
 
   if (isLoading) {
     return (
@@ -152,10 +173,13 @@ export default function PostDetail() {
               </div>
 
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
+                <Link
+                  href={`/users/${post.userId}`}
+                  className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                >
                   <User className="h-3.5 w-3.5" />
                   {post.authorName || "匿名"}
-                </span>
+                </Link>
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="h-3.5 w-3.5" />
                   {new Date(post.createdAt).toLocaleDateString("ja-JP", {
@@ -163,6 +187,10 @@ export default function PostDetail() {
                     month: "long",
                     day: "numeric",
                   })}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  {post.viewCount.toLocaleString("ja-JP")} 閲覧
                 </span>
                 {post.isEdited && (
                   <>

@@ -30,6 +30,7 @@ export const posts = mysqlTable("posts", {
   title: varchar("title", { length: 255 }).notNull(),
   body: text("body").notNull(),
   isEdited: boolean("isEdited").default(false).notNull(),
+  viewCount: int("viewCount").default(0).notNull(),
   createdAt: bigint("createdAt", { mode: "number" }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
 });

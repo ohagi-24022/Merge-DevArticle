@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, User, PenLine } from "lucide-react";
+import { CalendarDays, Eye, User, PenLine } from "lucide-react";
 import { Link } from "wouter";
 
 interface PostCardProps {
@@ -9,6 +9,7 @@ interface PostCardProps {
   body: string;
   authorName: string | null;
   isEdited: boolean;
+  viewCount: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -19,6 +20,7 @@ export default function PostCard({
   body,
   authorName,
   isEdited,
+  viewCount,
   createdAt,
 }: PostCardProps) {
   const excerpt =
@@ -61,6 +63,10 @@ export default function PostCard({
                 month: "short",
                 day: "numeric",
               })}
+            </span>
+            <span className="inline-flex items-center gap-1" aria-label={`${viewCount} 閲覧`}>
+              <Eye className="h-3 w-3" />
+              {viewCount.toLocaleString("ja-JP")}
             </span>
           </div>
         </CardContent>

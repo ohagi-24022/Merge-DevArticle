@@ -29,6 +29,8 @@ import {
 
   deletePost,
 
+  incrementPostViewCount,
+
   getUserById,
 
   updateUserProfile,
@@ -214,6 +216,24 @@ export const appRouter = router({
         if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
 
         return post;
+
+      }),
+
+    recordView: publicProcedure
+
+      .input(z.object({ id: z.number() }))
+
+      .mutation(async ({ input }) => {
+
+        const viewCount = await incrementPostViewCount(input.id);
+
+        if (viewCount === undefined) {
+
+          throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+
+        }
+
+        return { viewCount };
 
       }),
 

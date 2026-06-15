@@ -13,13 +13,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarDays, PenLine, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Eye, PenLine, Pencil, Trash2 } from "lucide-react";
 
 type PostManageCardProps = {
   id: number;
   title: string;
   body: string;
   isEdited: boolean;
+  viewCount: number;
   createdAt: number;
   onDelete: () => void;
   isDeleting?: boolean;
@@ -30,6 +31,7 @@ export default function PostManageCard({
   title,
   body,
   isEdited,
+  viewCount,
   createdAt,
   onDelete,
   isDeleting,
@@ -68,6 +70,10 @@ export default function PostManageCard({
               month: "short",
               day: "numeric",
             })}
+          </span>
+          <span className="ml-4 inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Eye className="h-3 w-3" />
+            {viewCount.toLocaleString("ja-JP")}
           </span>
         </Link>
         <div className="flex gap-2 mt-4 pt-4 border-t border-border/40">

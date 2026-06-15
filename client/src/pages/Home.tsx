@@ -134,6 +134,7 @@ export default function Home() {
                     body={post.body}
                     authorName={post.authorName}
                     isEdited={post.isEdited}
+                    viewCount={post.viewCount}
                     createdAt={post.createdAt}
                     updatedAt={post.updatedAt}
                   />

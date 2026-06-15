@@ -256,6 +256,7 @@ export async function getPostById(id: number) {
       title: posts.title,
       body: posts.body,
       isEdited: posts.isEdited,
+      viewCount: posts.viewCount,
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       authorName: users.name,
@@ -277,6 +278,7 @@ export async function getLatestPosts(limit: number = 3) {
       title: posts.title,
       body: posts.body,
       isEdited: posts.isEdited,
+      viewCount: posts.viewCount,
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       authorName: users.name,
@@ -323,6 +325,7 @@ export async function listPosts(opts?: {
         title: posts.title,
         body: posts.body,
         isEdited: posts.isEdited,
+        viewCount: posts.viewCount,
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
         authorName: users.name,
@@ -352,6 +355,7 @@ export async function getPostsByUserId(userId: number) {
       title: posts.title,
       body: posts.body,
       isEdited: posts.isEdited,
+      viewCount: posts.viewCount,
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       authorName: users.name,
@@ -360,6 +364,22 @@ export async function getPostsByUserId(userId: number) {
     .leftJoin(users, eq(posts.userId, users.id))
     .where(eq(posts.userId, userId))
     .orderBy(desc(posts.createdAt));
+}
+
+export async function incrementPostViewCount(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(posts)
+    .set({ viewCount: sql`${posts.viewCount} + 1` })
+    .where(eq(posts.id, id));
+
+  const result = await db
+    .select({ viewCount: posts.viewCount })
+    .from(posts)
+    .where(eq(posts.id, id))
+    .limit(1);
+  return result[0]?.viewCount;
 }
 
 export async function updatePost(

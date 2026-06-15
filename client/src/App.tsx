@@ -10,6 +10,7 @@ import PostDetail from "./pages/PostDetail";
 import NewPost from "./pages/NewPost";
 import EditPost from "./pages/EditPost";
 import Account from "./pages/Account";
+import UserProfile from "./pages/UserProfile";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/new" component={NewPost} />
       <Route path="/edit/:id" component={EditPost} />
       <Route path="/account" component={Account} />
+      <Route path="/users/:id" component={UserProfile} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
