@@ -9,8 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CompletedAppCard from "@/components/CompletedAppCard";
 import PostManageCard from "@/components/PostManageCard";
 import {
   Table,
@@ -20,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save, Shield, Eye } from "lucide-react";
+import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save, Shield, Eye, Sparkles, Rocket } from "lucide-react";
 import { MergeLogo } from "@/components/MergeLogo";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -30,8 +38,14 @@ export default function Account() {
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [repoInput, setRepoInput] = useState("");
+  const [appTitle, setAppTitle] = useState("");
+  const [appUrl, setAppUrl] = useState("");
+  const [appDescription, setAppDescription] = useState("");
+  const [appNotes, setAppNotes] = useState("");
+  const [selectedAppRepo, setSelectedAppRepo] = useState("none");
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+  const [deletingAppId, setDeletingAppId] = useState<number | null>(null);
 
   const isAdmin = user?.role === "admin";
 
@@ -40,6 +54,10 @@ export default function Account() {
     { enabled: !!user?.id }
   );
   const { data: myPosts } = trpc.post.getByUser.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user?.id }
+  );
+  const { data: myApps } = trpc.completedApp.listByUser.useQuery(
     { userId: user?.id ?? 0 },
     { enabled: !!user?.id }
   );
@@ -73,6 +91,42 @@ export default function Account() {
       utils.github.listRepos.invalidate();
     },
     onError: (err) => toast.error(err.message),
+  });
+  const generateAppDescription = trpc.ai.generateAppDescription.useMutation({
+    onSuccess: (data) => {
+      const lines = data.description.split("\n");
+      if (lines[0]?.startsWith("# ")) {
+        setAppTitle(lines[0].replace("# ", "").trim());
+        setAppDescription(lines.slice(1).join("\n").trim());
+      } else {
+        setAppDescription(data.description);
+      }
+      toast.success("AI紹介文を生成しました");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const createApp = trpc.completedApp.create.useMutation({
+    onSuccess: () => {
+      toast.success("完成アプリを追加しました");
+      setAppTitle("");
+      setAppUrl("");
+      setAppDescription("");
+      setAppNotes("");
+      setSelectedAppRepo("none");
+      utils.completedApp.listByUser.invalidate({ userId: user?.id ?? 0 });
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const deleteApp = trpc.completedApp.delete.useMutation({
+    onSuccess: () => {
+      toast.success("完成アプリを削除しました");
+      utils.completedApp.listByUser.invalidate({ userId: user?.id ?? 0 });
+      setDeletingAppId(null);
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setDeletingAppId(null);
+    },
   });
   const deletePost = trpc.post.delete.useMutation({
     onSuccess: () => {
@@ -115,6 +169,51 @@ export default function Account() {
   const handleDeletePost = (postId: number) => {
     setDeletingPostId(postId);
     deletePost.mutate({ id: postId });
+  };
+
+  const selectedRepo = repos?.find((repo) => repo.id.toString() === selectedAppRepo);
+
+  const handleGenerateAppFromGithub = () => {
+    if (!selectedRepo) {
+      toast.error("リポジトリを選択してください");
+      return;
+    }
+    generateAppDescription.mutate({
+      source: "github",
+      repoOwner: selectedRepo.repoOwner,
+      repoName: selectedRepo.repoName,
+      notes: appNotes.trim() || undefined,
+    });
+  };
+
+  const handleGenerateAppFromNotes = () => {
+    if (!appNotes.trim()) {
+      toast.error("アプリの説明メモを入力してください");
+      return;
+    }
+    generateAppDescription.mutate({
+      source: "manual",
+      notes: appNotes.trim(),
+    });
+  };
+
+  const handleCreateApp = () => {
+    if (!appTitle.trim() || !appDescription.trim()) {
+      toast.error("アプリ名と紹介文を入力してください");
+      return;
+    }
+    createApp.mutate({
+      title: appTitle.trim(),
+      description: appDescription.trim(),
+      repoOwner: selectedRepo?.repoOwner ?? null,
+      repoName: selectedRepo?.repoName ?? null,
+      appUrl: appUrl.trim() || null,
+    });
+  };
+
+  const handleDeleteApp = (appId: number) => {
+    setDeletingAppId(appId);
+    deleteApp.mutate({ id: appId });
   };
 
   if (!authLoading && !isAuthenticated) {
@@ -288,6 +387,165 @@ export default function Account() {
               </CardContent>
             </Card>
           </div>
+
+          <Separator className="mb-8" />
+          <div className="mb-6">
+            <h2 className="text-xl font-bold tracking-tight font-serif mb-1 flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-primary" />
+              完成アプリ
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              公開プロフィールに載せるアプリ紹介を登録できます
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-10">
+            <Card className="border-border/50 lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  AI紹介文生成
+                </CardTitle>
+                <CardDescription>
+                  GitHub情報またはメモからアプリ紹介文を作ります
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>GitHubリポジトリ（任意）</Label>
+                  <Select value={selectedAppRepo} onValueChange={setSelectedAppRepo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="リポジトリを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">使わない</SelectItem>
+                      {repos?.map((repo) => (
+                        <SelectItem key={repo.id} value={repo.id.toString()}>
+                          {repo.repoOwner}/{repo.repoName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="appNotes">補足メモ</Label>
+                  <Textarea
+                    id="appNotes"
+                    value={appNotes}
+                    onChange={(e) => setAppNotes(e.target.value)}
+                    placeholder={"どんなアプリか、できること、工夫した点など\nGitHub未登録のアプリはここに詳しく書いてください"}
+                    rows={7}
+                    className="resize-none text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleGenerateAppFromGithub}
+                    disabled={generateAppDescription.isPending || !selectedRepo}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {generateAppDescription.isPending && selectedRepo ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <GitBranch className="h-4 w-4" />
+                    )}
+                    GitHubから生成
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGenerateAppFromNotes}
+                    disabled={generateAppDescription.isPending || !appNotes.trim()}
+                    size="sm"
+                    className="gap-2 bg-transparent"
+                  >
+                    {generateAppDescription.isPending && !selectedRepo ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    メモから生成
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50 lg:col-span-3">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">アプリ紹介を登録</CardTitle>
+                <CardDescription>
+                  AI生成後に手直ししてから保存できます
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="appTitle">アプリ名</Label>
+                  <Input
+                    id="appTitle"
+                    value={appTitle}
+                    onChange={(e) => setAppTitle(e.target.value)}
+                    placeholder="アプリ名"
+                    maxLength={255}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="appUrl">公開URL（任意）</Label>
+                  <Input
+                    id="appUrl"
+                    value={appUrl}
+                    onChange={(e) => setAppUrl(e.target.value)}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="appDescription">紹介文</Label>
+                  <Textarea
+                    id="appDescription"
+                    value={appDescription}
+                    onChange={(e) => setAppDescription(e.target.value)}
+                    placeholder="アプリ紹介文を書いてください..."
+                    rows={10}
+                    className="resize-y text-sm"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={handleCreateApp}
+                    disabled={createApp.isPending || !appTitle.trim() || !appDescription.trim()}
+                    className="gap-2"
+                  >
+                    {createApp.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    完成アプリを追加
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {myApps && myApps.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+              {myApps.map((app) => (
+                <CompletedAppCard
+                  key={app.id}
+                  title={app.title}
+                  description={app.description}
+                  repoOwner={app.repoOwner}
+                  repoName={app.repoName}
+                  appUrl={app.appUrl}
+                  canDelete
+                  onDelete={() => handleDeleteApp(app.id)}
+                  isDeleting={deletingAppId === app.id && deleteApp.isPending}
+                />
+              ))}
+            </div>
+          )}
 
           <Separator className="mb-8" />
           <div className="mb-6">

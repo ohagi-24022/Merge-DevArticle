@@ -51,3 +51,21 @@ export const githubRepos = mysqlTable("github_repos", {
 
 export type GithubRepo = typeof githubRepos.$inferSelect;
 export type InsertGithubRepo = typeof githubRepos.$inferInsert;
+
+/**
+ * Completed applications showcased on user profiles.
+ */
+export const completedApps = mysqlTable("completed_apps", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  repoOwner: varchar("repoOwner", { length: 255 }),
+  repoName: varchar("repoName", { length: 255 }),
+  appUrl: text("appUrl"),
+  createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+});
+
+export type CompletedApp = typeof completedApps.$inferSelect;
+export type InsertCompletedApp = typeof completedApps.$inferInsert;

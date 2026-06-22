@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CompletedAppCard from "@/components/CompletedAppCard";
 import PostCard from "@/components/PostCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +16,8 @@ export default function UserProfile() {
     trpc.user.getProfile.useQuery({ userId }, { enabled });
   const { data: posts, isLoading: postsLoading } =
     trpc.post.getByUser.useQuery({ userId }, { enabled });
+  const { data: apps, isLoading: appsLoading } =
+    trpc.completedApp.listByUser.useQuery({ userId }, { enabled });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -57,6 +60,37 @@ export default function UserProfile() {
           )}
 
           {profile && (
+            <>
+            <section className="mb-10">
+              <h2 className="text-xl font-bold tracking-tight font-serif mb-5">
+                完成アプリ
+              </h2>
+              {appsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {[1, 2].map((item) => (
+                    <Skeleton key={item} className="h-56 rounded-xl" />
+                  ))}
+                </div>
+              ) : apps && apps.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {apps.map((app) => (
+                    <CompletedAppCard
+                      key={app.id}
+                      title={app.title}
+                      description={app.description}
+                      repoOwner={app.repoOwner}
+                      repoName={app.repoName}
+                      appUrl={app.appUrl}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
+                  完成アプリはまだありません。
+                </p>
+              )}
+            </section>
+
             <section>
               <h2 className="text-xl font-bold tracking-tight font-serif mb-5">
                 投稿
@@ -89,6 +123,7 @@ export default function UserProfile() {
                 </p>
               )}
             </section>
+            </>
           )}
         </div>
       </main>

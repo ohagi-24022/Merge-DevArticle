@@ -43,6 +43,12 @@ import {
 
   removeGithubRepo,
 
+  getCompletedAppsByUserId,
+
+  createCompletedApp,
+
+  deleteCompletedApp,
+
 } from "./db";
 
 import { invokeLLM } from "./_core/llm";
@@ -544,6 +550,151 @@ export const appRouter = router({
 
       }),
 
+    generateAppDescription: protectedProcedure
+
+      .input(z.discriminatedUnion("source", [
+
+        z.object({
+
+          source: z.literal("manual"),
+
+          notes: z.string().min(1),
+
+        }),
+
+        z.object({
+
+          source: z.literal("github"),
+
+          repoOwner: z.string().min(1),
+
+          repoName: z.string().min(1),
+
+          notes: z.string().optional(),
+
+        }),
+
+      ]))
+
+      .mutation(async ({ input }) => {
+
+        let prompt = "";
+
+        if (input.source === "github") {
+
+          const headers = {
+
+            "Accept": "application/vnd.github.v3+json",
+
+            "User-Agent": "CircleBulletinBoard",
+
+          };
+
+          const repoUrl = `https://api.github.com/repos/${input.repoOwner}/${input.repoName}`;
+
+          const [repoRes, languagesRes, readmeRes] = await Promise.all([
+
+            fetch(repoUrl, { headers }),
+
+            fetch(`${repoUrl}/languages`, { headers }),
+
+            fetch(`${repoUrl}/readme`, { headers: { ...headers, "Accept": "application/vnd.github.raw" } }),
+
+          ]);
+
+          if (!repoRes.ok) {
+
+            throw new TRPCError({
+
+              code: "BAD_REQUEST",
+
+              message: `GitHub APIエラー: ${repoRes.status} - リポジトリが見つからないか、アクセスできません`,
+
+            });
+
+          }
+
+          const repo = await repoRes.json() as {
+
+            full_name: string;
+
+            name: string;
+
+            description: string | null;
+
+            html_url: string;
+
+            homepage: string | null;
+
+            topics?: string[];
+
+          };
+
+          const languages = languagesRes.ok ? await languagesRes.json() : {};
+
+          const readme = readmeRes.ok ? (await readmeRes.text()).slice(0, 8000) : "";
+
+          prompt = `以下のGitHubリポジトリ情報をもとに、完成アプリ紹介文を作成してください。
+
+リポジトリ: ${repo.full_name}
+説明: ${repo.description ?? "なし"}
+URL: ${repo.html_url}
+公開URL: ${repo.homepage ?? "なし"}
+トピック: ${(repo.topics ?? []).join(", ") || "なし"}
+使用言語: ${JSON.stringify(languages)}
+補足メモ: ${input.notes || "なし"}
+
+README:
+${readme}`;
+
+        } else {
+
+          prompt = `以下のメモをもとに、完成アプリ紹介文を作成してください。
+
+${input.notes}`;
+
+        }
+
+        const response = await invokeLLM({
+
+          messages: [
+
+            {
+
+              role: "system",
+
+              content: `あなたはポートフォリオ用のアプリ紹介文を書くアシスタントです。
+
+以下のルールに従ってください：
+
+- 1行目に「# アプリ名」の形式でタイトルを書く
+- 2行目以降にMarkdownで紹介文を書く
+- 何ができるアプリか、誰に向けたものか、主な機能、工夫した点を自然にまとめる
+- 技術情報が分かる場合は簡潔に触れる
+- 誇張しすぎず、読みやすい日本語のです・ます調にする`,
+
+            },
+
+            {
+
+              role: "user",
+
+              content: prompt,
+
+            },
+
+          ],
+
+        });
+
+        const content = response.choices[0]?.message?.content;
+
+        const text = typeof content === "string" ? content : "";
+
+        return { description: text };
+
+      }),
+
   }),
 
 
@@ -593,6 +744,68 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
 
         await removeGithubRepo(input.id, ctx.user.id);
+
+        return { success: true };
+
+      }),
+
+  }),
+
+  completedApp: router({
+
+    listByUser: publicProcedure
+
+      .input(z.object({ userId: z.number() }))
+
+      .query(async ({ input }) => {
+
+        return getCompletedAppsByUserId(input.userId);
+
+      }),
+
+    create: protectedProcedure
+
+      .input(z.object({
+
+        title: z.string().min(1).max(255),
+
+        description: z.string().min(1),
+
+        repoOwner: z.string().min(1).max(255).nullable().optional(),
+
+        repoName: z.string().min(1).max(255).nullable().optional(),
+
+        appUrl: z.string().url().nullable().optional(),
+
+      }))
+
+      .mutation(async ({ ctx, input }) => {
+
+        return createCompletedApp({
+
+          userId: ctx.user.id,
+
+          title: input.title,
+
+          description: input.description,
+
+          repoOwner: input.repoOwner,
+
+          repoName: input.repoName,
+
+          appUrl: input.appUrl,
+
+        });
+
+      }),
+
+    delete: protectedProcedure
+
+      .input(z.object({ id: z.number() }))
+
+      .mutation(async ({ ctx, input }) => {
+
+        await deleteCompletedApp(input.id, ctx.user.id);
 
         return { success: true };
 

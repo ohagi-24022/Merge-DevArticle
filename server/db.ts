@@ -1,7 +1,7 @@
 import { eq, desc, asc, like, or, sql, and } from "drizzle-orm";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users, posts, githubRepos } from "../drizzle/schema";
+import { InsertUser, users, posts, githubRepos, completedApps } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { isAdminUserId } from "./config/admins";
 
@@ -446,4 +446,55 @@ export async function removeGithubRepo(repoId: number, userId: number) {
   if (repo[0].userId !== userId)
     throw new Error("You can only remove your own repositories");
   await db.delete(githubRepos).where(eq(githubRepos.id, repoId));
+}
+
+// ─── Completed app helpers ──────────────────────────────────
+
+export async function getCompletedAppsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(completedApps)
+    .where(eq(completedApps.userId, userId))
+    .orderBy(desc(completedApps.updatedAt));
+}
+
+export async function createCompletedApp(data: {
+  userId: number;
+  title: string;
+  description: string;
+  repoOwner?: string | null;
+  repoName?: string | null;
+  appUrl?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const now = Date.now();
+  const result = await db.insert(completedApps).values({
+    userId: data.userId,
+    title: data.title,
+    description: data.description,
+    repoOwner: data.repoOwner ?? null,
+    repoName: data.repoName ?? null,
+    appUrl: data.appUrl ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { id: result[0].insertId, createdAt: now };
+}
+
+export async function deleteCompletedApp(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const app = await db
+    .select({ userId: completedApps.userId })
+    .from(completedApps)
+    .where(eq(completedApps.id, id))
+    .limit(1);
+  if (app.length === 0) throw new Error("Application not found");
+  if (app[0].userId !== userId) {
+    throw new Error("You can only delete your own applications");
+  }
+  await db.delete(completedApps).where(eq(completedApps.id, id));
 }
