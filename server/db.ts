@@ -460,6 +460,89 @@ export async function getCompletedAppsByUserId(userId: number) {
     .orderBy(desc(completedApps.updatedAt));
 }
 
+export async function listCompletedApps(opts?: {
+  authorId?: number;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { apps: [], total: 0 };
+
+  const page = opts?.page ?? 1;
+  const pageSize = opts?.pageSize ?? 12;
+  const offset = (page - 1) * pageSize;
+
+  const conditions = [];
+  if (opts?.authorId) {
+    conditions.push(eq(completedApps.userId, opts.authorId));
+  }
+  if (opts?.search) {
+    const searchPattern = `%${opts.search}%`;
+    conditions.push(
+      or(
+        like(completedApps.title, searchPattern),
+        like(completedApps.description, searchPattern),
+        like(completedApps.repoOwner, searchPattern),
+        like(completedApps.repoName, searchPattern),
+      )!
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, countResult] = await Promise.all([
+    db
+      .select({
+        id: completedApps.id,
+        userId: completedApps.userId,
+        title: completedApps.title,
+        description: completedApps.description,
+        repoOwner: completedApps.repoOwner,
+        repoName: completedApps.repoName,
+        appUrl: completedApps.appUrl,
+        createdAt: completedApps.createdAt,
+        updatedAt: completedApps.updatedAt,
+        authorName: users.name,
+      })
+      .from(completedApps)
+      .leftJoin(users, eq(completedApps.userId, users.id))
+      .where(whereClause)
+      .orderBy(desc(completedApps.updatedAt))
+      .limit(pageSize)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(completedApps)
+      .where(whereClause),
+  ]);
+
+  return { apps: rows, total: countResult[0]?.count ?? 0 };
+}
+
+export async function getCompletedAppById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select({
+      id: completedApps.id,
+      userId: completedApps.userId,
+      title: completedApps.title,
+      description: completedApps.description,
+      repoOwner: completedApps.repoOwner,
+      repoName: completedApps.repoName,
+      appUrl: completedApps.appUrl,
+      createdAt: completedApps.createdAt,
+      updatedAt: completedApps.updatedAt,
+      authorName: users.name,
+    })
+    .from(completedApps)
+    .leftJoin(users, eq(completedApps.userId, users.id))
+    .where(eq(completedApps.id, id))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function createCompletedApp(data: {
   userId: number;
   title: string;

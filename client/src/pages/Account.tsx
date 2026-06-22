@@ -534,11 +534,13 @@ export default function Account() {
               {myApps.map((app) => (
                 <CompletedAppCard
                   key={app.id}
+                  id={app.id}
                   title={app.title}
                   description={app.description}
                   repoOwner={app.repoOwner}
                   repoName={app.repoName}
                   appUrl={app.appUrl}
+                  createdAt={app.createdAt}
                   canDelete
                   onDelete={() => handleDeleteApp(app.id)}
                   isDeleting={deletingAppId === app.id && deleteApp.isPending}

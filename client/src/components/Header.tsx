@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Home, PenLine, User, LogOut, Menu, X, List } from "lucide-react";
+import { Home, PenLine, User, LogOut, Menu, X, List, Rocket } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 
@@ -21,6 +21,7 @@ export default function Header() {
   const navLinks = [
     { href: "/", label: "ホーム", icon: Home },
     { href: "/posts", label: "投稿一覧", icon: List },
+    { href: "/apps", label: "完成アプリ", icon: Rocket },
     ...(isAuthenticated
       ? [
           { href: "/new", label: "新規投稿", icon: PenLine },

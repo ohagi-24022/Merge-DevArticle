@@ -76,11 +76,13 @@ export default function UserProfile() {
                   {apps.map((app) => (
                     <CompletedAppCard
                       key={app.id}
+                      id={app.id}
                       title={app.title}
                       description={app.description}
                       repoOwner={app.repoOwner}
                       repoName={app.repoName}
                       appUrl={app.appUrl}
+                      createdAt={app.createdAt}
                     />
                   ))}
                 </div>

@@ -45,6 +45,10 @@ import {
 
   getCompletedAppsByUserId,
 
+  listCompletedApps,
+
+  getCompletedAppById,
+
   createCompletedApp,
 
   deleteCompletedApp,
@@ -752,6 +756,50 @@ ${input.notes}`;
   }),
 
   completedApp: router({
+
+    list: publicProcedure
+
+      .input(z.object({
+
+        authorId: z.number().optional(),
+
+        search: z.string().optional(),
+
+        page: z.number().min(1).optional(),
+
+        pageSize: z.number().min(1).max(50).optional(),
+
+      }).optional())
+
+      .query(async ({ input }) => {
+
+        return listCompletedApps({
+
+          authorId: input?.authorId,
+
+          search: input?.search,
+
+          page: input?.page,
+
+          pageSize: input?.pageSize,
+
+        });
+
+      }),
+
+    getById: publicProcedure
+
+      .input(z.object({ id: z.number() }))
+
+      .query(async ({ input }) => {
+
+        const app = await getCompletedAppById(input.id);
+
+        if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+
+        return app;
+
+      }),
 
     listByUser: publicProcedure
 
