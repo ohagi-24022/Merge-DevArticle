@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Rocket } from "lucide-react";
+import { useEffect, useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
 type CompletedAppIconProps = {
@@ -10,43 +10,30 @@ type CompletedAppIconProps = {
   imageClassName?: string;
 };
 
-function getIconCandidates(appUrl: string | null | undefined, size: number) {
-  if (!appUrl) return [];
-
-  try {
-    const url = new URL(appUrl);
-    const origin = url.origin;
-    const domainUrl = encodeURIComponent(origin);
-
-    return [
-      `${origin}/favicon.ico`,
-      `${origin}/apple-touch-icon.png`,
-      `${origin}/apple-touch-icon-precomposed.png`,
-      `https://www.google.com/s2/favicons?domain_url=${domainUrl}&sz=${size}`,
-    ];
-  } catch {
-    return [];
-  }
-}
+const FALLBACK_ICON_URL = "/merge-logo.png";
 
 export default function CompletedAppIcon({
   appUrl,
   title,
-  size = 64,
   className,
   imageClassName,
 }: CompletedAppIconProps) {
-  const candidates = useMemo(
-    () => getIconCandidates(appUrl, size),
-    [appUrl, size]
+  const normalizedUrl = appUrl?.trim() || null;
+  const { data } = trpc.completedApp.resolveIcon.useQuery(
+    { appUrl: normalizedUrl },
+    {
+      enabled: Boolean(normalizedUrl),
+      staleTime: 1000 * 60 * 60,
+    }
   );
-  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const resolvedIconUrl = data?.iconUrl ?? FALLBACK_ICON_URL;
+  const iconUrl =
+    failedSrc === resolvedIconUrl ? FALLBACK_ICON_URL : resolvedIconUrl;
 
   useEffect(() => {
-    setCandidateIndex(0);
-  }, [appUrl, size]);
-
-  const iconUrl = candidates[candidateIndex];
+    setFailedSrc(null);
+  }, [resolvedIconUrl]);
 
   return (
     <div
@@ -55,18 +42,14 @@ export default function CompletedAppIcon({
         className
       )}
     >
-      {iconUrl ? (
-        <img
-          src={iconUrl}
-          alt={title ? `${title} icon` : ""}
-          className={cn("size-full object-cover", imageClassName)}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setCandidateIndex(index => index + 1)}
-        />
-      ) : (
-        <Rocket className="h-1/2 w-1/2" aria-hidden="true" />
-      )}
+      <img
+        src={iconUrl}
+        alt={title ? `${title} icon` : ""}
+        className={cn("size-full object-cover", imageClassName)}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailedSrc(iconUrl)}
+      />
     </div>
   );
 }
