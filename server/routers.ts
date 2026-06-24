@@ -265,6 +265,8 @@ export const appRouter = router({
           name: z.string().min(1).max(50).optional(),
 
           bio: z.string().max(500).optional(),
+
+          avatarUrl: z.string().url().nullable().optional(),
         })
       )
 

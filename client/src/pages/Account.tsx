@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -56,6 +57,7 @@ export default function Account() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [repoInput, setRepoInput] = useState("");
   const [appTitle, setAppTitle] = useState("");
   const [appUrl, setAppUrl] = useState("");
@@ -91,6 +93,7 @@ export default function Account() {
     onSuccess: () => {
       toast.success("プロフィールを更新しました");
       utils.user.getProfile.invalidate();
+      utils.auth.me.invalidate();
     },
     onError: err => toast.error(err.message),
   });
@@ -163,6 +166,7 @@ export default function Account() {
     if (profile && !profileLoaded) {
       setName(profile.name || "");
       setBio(profile.bio || "");
+      setAvatarUrl(profile.avatarUrl || "");
       setProfileLoaded(true);
     }
   }, [profile, profileLoaded]);
@@ -171,6 +175,7 @@ export default function Account() {
     updateProfile.mutate({
       name: name.trim() || undefined,
       bio: bio.trim() || undefined,
+      avatarUrl: avatarUrl.trim() || null,
     });
   };
 
@@ -296,6 +301,20 @@ export default function Account() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-muted/30 p-4">
+                  <Avatar className="size-16 border">
+                    <AvatarImage src={avatarUrl.trim() || undefined} alt="" />
+                    <AvatarFallback className="text-xl">
+                      {name?.charAt(0)?.toUpperCase() || <User />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">アカウントアイコン</p>
+                    <p className="text-xs text-muted-foreground">
+                      画像URLを設定すると、ヘッダーやプロフィールに反映されます。
+                    </p>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">表示名</Label>
                   <Input
@@ -305,6 +324,18 @@ export default function Account() {
                     placeholder="表示名"
                     maxLength={50}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="avatarUrl">アイコン画像URL</Label>
+                  <Input
+                    id="avatarUrl"
+                    value={avatarUrl}
+                    onChange={e => setAvatarUrl(e.target.value)}
+                    placeholder="https://example.com/icon.png"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    空欄で保存すると未設定に戻せます。
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bio">自己紹介</Label>

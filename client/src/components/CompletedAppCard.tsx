@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import CompletedAppIcon from "@/components/CompletedAppIcon";
 import {
   CalendarDays,
@@ -20,6 +21,7 @@ type CompletedAppCardProps = {
   repoName: string | null;
   appUrl: string | null;
   authorName?: string | null;
+  authorAvatarUrl?: string | null;
   userId?: number;
   createdAt?: number;
   canDelete?: boolean;
@@ -35,6 +37,7 @@ export default function CompletedAppCard({
   repoName,
   appUrl,
   authorName,
+  authorAvatarUrl,
   userId,
   createdAt,
   canDelete,
@@ -128,7 +131,16 @@ export default function CompletedAppCard({
                 href={`/users/${userId}`}
                 className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
               >
-                <User className="h-3 w-3" />
+                {authorAvatarUrl ? (
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={authorAvatarUrl} alt="" />
+                    <AvatarFallback>
+                      <User className="h-2.5 w-2.5" />
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <User className="h-3 w-3" />
+                )}
                 {authorName}
               </Link>
             )}

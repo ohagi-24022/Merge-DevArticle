@@ -14,12 +14,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
 import { MergeLogo } from "@/components/MergeLogo";
-import {
-  Search,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function PostList() {
   const [search, setSearch] = useState("");
@@ -65,7 +60,7 @@ export default function PostList() {
               <Input
                 placeholder="キーワードで検索..."
                 value={search}
-                onChange={(e) => {
+                onChange={e => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
@@ -74,7 +69,7 @@ export default function PostList() {
             </div>
             <Select
               value={authorId?.toString() || "all"}
-              onValueChange={(val) => {
+              onValueChange={val => {
                 setAuthorId(val === "all" ? undefined : Number(val));
                 setPage(1);
               }}
@@ -84,7 +79,7 @@ export default function PostList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">すべての投稿者</SelectItem>
-                {allUsers?.map((u) => (
+                {allUsers?.map(u => (
                   <SelectItem key={u.id} value={u.id.toString()}>
                     {u.name || `User #${u.id}`}
                   </SelectItem>
@@ -95,7 +90,7 @@ export default function PostList() {
               variant="outline"
               size="default"
               className="gap-2 bg-transparent shrink-0"
-              onClick={() => setSortOrder((o) => (o === "desc" ? "asc" : "desc"))}
+              onClick={() => setSortOrder(o => (o === "desc" ? "asc" : "desc"))}
             >
               <ArrowUpDown className="h-4 w-4" />
               {sortOrder === "desc" ? "新しい順" : "古い順"}
@@ -120,13 +115,14 @@ export default function PostList() {
           ) : data && data.posts.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {data.posts.map((post) => (
+                {data.posts.map(post => (
                   <PostCard
                     key={post.id}
                     id={post.id}
                     title={post.title}
                     body={post.body}
                     authorName={post.authorName}
+                    authorAvatarUrl={post.authorAvatarUrl}
                     isEdited={post.isEdited}
                     viewCount={post.viewCount}
                     createdAt={post.createdAt}
@@ -142,7 +138,7 @@ export default function PostList() {
                     variant="outline"
                     size="sm"
                     disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
+                    onClick={() => setPage(p => p - 1)}
                     className="bg-transparent"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -154,7 +150,7 @@ export default function PostList() {
                     variant="outline"
                     size="sm"
                     disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setPage(p => p + 1)}
                     className="bg-transparent"
                   >
                     <ChevronRight className="h-4 w-4" />

@@ -3,6 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CompletedAppIcon from "@/components/CompletedAppIcon";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -80,7 +81,16 @@ export default function CompletedAppDetail() {
                         href={`/users/${app.userId}`}
                         className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
                       >
-                        <User className="h-3.5 w-3.5" />
+                        {app.authorAvatarUrl ? (
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={app.authorAvatarUrl} alt="" />
+                            <AvatarFallback>
+                              <User className="h-3 w-3" />
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <User className="h-3.5 w-3.5" />
+                        )}
                         {app.authorName || "匿名"}
                       </Link>
                       <span className="inline-flex items-center gap-1.5">

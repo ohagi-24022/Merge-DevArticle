@@ -2,6 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -16,7 +17,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, CalendarDays, Eye, User, PenLine, Clock, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Eye,
+  User,
+  PenLine,
+  Clock,
+  Trash2,
+} from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
@@ -32,7 +41,7 @@ export default function PostDetail() {
 
   const recordView = trpc.post.recordView.useMutation({
     onSuccess: ({ viewCount }) => {
-      utils.post.getById.setData({ id: postId }, (current) =>
+      utils.post.getById.setData({ id: postId }, current =>
         current ? { ...current, viewCount } : current
       );
       utils.post.list.invalidate();
@@ -50,7 +59,7 @@ export default function PostDetail() {
       utils.post.latest.invalidate();
       setLocation("/posts");
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const { data: post, isLoading } = trpc.post.getById.useQuery(
@@ -90,9 +99,13 @@ export default function PostDetail() {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">投稿が見つかりませんでした</p>
+            <p className="text-muted-foreground mb-4">
+              投稿が見つかりませんでした
+            </p>
             <Link href="/posts">
-              <Button variant="outline" className="bg-transparent">投稿一覧に戻る</Button>
+              <Button variant="outline" className="bg-transparent">
+                投稿一覧に戻る
+              </Button>
             </Link>
           </div>
         </main>
@@ -152,7 +165,9 @@ export default function PostDetail() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>投稿を削除しますか？</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            投稿を削除しますか？
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
                             この操作は取り消せません。
                           </AlertDialogDescription>
@@ -177,7 +192,16 @@ export default function PostDetail() {
                   href={`/users/${post.userId}`}
                   className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
                 >
-                  <User className="h-3.5 w-3.5" />
+                  {post.authorAvatarUrl ? (
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={post.authorAvatarUrl} alt="" />
+                      <AvatarFallback>
+                        <User className="h-3 w-3" />
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <User className="h-3.5 w-3.5" />
+                  )}
                   {post.authorName || "匿名"}
                 </Link>
                 <span className="inline-flex items-center gap-1.5">

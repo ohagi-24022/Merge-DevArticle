@@ -26,7 +26,10 @@ export default function Home() {
 
       <main className="flex-1">
         <section className="relative overflow-hidden merge-hero-bg text-white">
-          <div className="absolute inset-0 merge-split-bar opacity-[0.12]" aria-hidden />
+          <div
+            className="absolute inset-0 merge-split-bar opacity-[0.12]"
+            aria-hidden
+          />
           <div className="container relative py-16 md:py-24">
             <div className="max-w-2xl">
               <div className="flex items-center gap-4 mb-8">
@@ -112,7 +115,7 @@ export default function Home() {
 
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3].map(i => (
                   <div key={i} className="space-y-3 p-5 border rounded-xl">
                     <Skeleton className="h-5 w-3/4" />
                     <Skeleton className="h-4 w-full" />
@@ -126,13 +129,14 @@ export default function Home() {
               </div>
             ) : latestPosts && latestPosts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {latestPosts.map((post) => (
+                {latestPosts.map(post => (
                   <PostCard
                     key={post.id}
                     id={post.id}
                     title={post.title}
                     body={post.body}
                     authorName={post.authorName}
+                    authorAvatarUrl={post.authorAvatarUrl}
                     isEdited={post.isEdited}
                     viewCount={post.viewCount}
                     createdAt={post.createdAt}
@@ -180,7 +184,7 @@ export default function Home() {
                   title: "GitHub連携",
                   desc: "リポジトリの変更差分をAIが分析し、開発日記に変換します。",
                 },
-              ].map((feature) => (
+              ].map(feature => (
                 <div
                   key={feature.title}
                   className="p-6 rounded-xl bg-card border border-border/50 hover:shadow-sm transition-shadow"

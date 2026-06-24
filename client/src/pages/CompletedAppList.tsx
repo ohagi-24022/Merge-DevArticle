@@ -55,7 +55,7 @@ export default function CompletedAppList() {
               <Input
                 placeholder="アプリ名や説明で検索..."
                 value={search}
-                onChange={(e) => {
+                onChange={e => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
@@ -64,7 +64,7 @@ export default function CompletedAppList() {
             </div>
             <Select
               value={authorId?.toString() || "all"}
-              onValueChange={(val) => {
+              onValueChange={val => {
                 setAuthorId(val === "all" ? undefined : Number(val));
                 setPage(1);
               }}
@@ -74,7 +74,7 @@ export default function CompletedAppList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">すべての作者</SelectItem>
-                {allUsers?.map((u) => (
+                {allUsers?.map(u => (
                   <SelectItem key={u.id} value={u.id.toString()}>
                     {u.name || `User #${u.id}`}
                   </SelectItem>
@@ -92,7 +92,7 @@ export default function CompletedAppList() {
           ) : data && data.apps.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {data.apps.map((app) => (
+                {data.apps.map(app => (
                   <CompletedAppCard
                     key={app.id}
                     id={app.id}
@@ -102,6 +102,7 @@ export default function CompletedAppList() {
                     repoName={app.repoName}
                     appUrl={app.appUrl}
                     authorName={app.authorName}
+                    authorAvatarUrl={app.authorAvatarUrl}
                     userId={app.userId}
                     createdAt={app.createdAt}
                   />
@@ -114,7 +115,7 @@ export default function CompletedAppList() {
                     variant="outline"
                     size="sm"
                     disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
+                    onClick={() => setPage(p => p - 1)}
                     className="bg-transparent"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -126,7 +127,7 @@ export default function CompletedAppList() {
                     variant="outline"
                     size="sm"
                     disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setPage(p => p + 1)}
                     className="bg-transparent"
                   >
                     <ChevronRight className="h-4 w-4" />

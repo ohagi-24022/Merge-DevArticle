@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CalendarDays, Eye, User, PenLine } from "lucide-react";
 import { Link } from "wouter";
 
@@ -8,6 +9,7 @@ interface PostCardProps {
   title: string;
   body: string;
   authorName: string | null;
+  authorAvatarUrl?: string | null;
   isEdited: boolean;
   viewCount: number;
   createdAt: number;
@@ -19,6 +21,7 @@ export default function PostCard({
   title,
   body,
   authorName,
+  authorAvatarUrl,
   isEdited,
   viewCount,
   createdAt,
@@ -53,7 +56,16 @@ export default function PostCard({
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <User className="h-3 w-3" />
+              {authorAvatarUrl ? (
+                <Avatar className="h-4 w-4">
+                  <AvatarImage src={authorAvatarUrl} alt="" />
+                  <AvatarFallback>
+                    <User className="h-2.5 w-2.5" />
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <User className="h-3 w-3" />
+              )}
               {authorName || "匿名"}
             </span>
             <span className="inline-flex items-center gap-1">
@@ -64,7 +76,10 @@ export default function PostCard({
                 day: "numeric",
               })}
             </span>
-            <span className="inline-flex items-center gap-1" aria-label={`${viewCount} 閲覧`}>
+            <span
+              className="inline-flex items-center gap-1"
+              aria-label={`${viewCount} 閲覧`}
+            >
               <Eye className="h-3 w-3" />
               {viewCount.toLocaleString("ja-JP")}
             </span>

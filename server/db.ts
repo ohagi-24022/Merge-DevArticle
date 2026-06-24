@@ -1,7 +1,13 @@
 import { eq, desc, asc, like, or, sql, and } from "drizzle-orm";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users, posts, githubRepos, completedApps } from "../drizzle/schema";
+import {
+  InsertUser,
+  users,
+  posts,
+  githubRepos,
+  completedApps,
+} from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { isAdminUserId } from "./config/admins";
 
@@ -74,7 +80,9 @@ export async function getDb() {
   return _db;
 }
 
-async function withDbRetry<T>(operation: (db: MySql2Database) => Promise<T>): Promise<T> {
+async function withDbRetry<T>(
+  operation: (db: MySql2Database) => Promise<T>
+): Promise<T> {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -85,7 +93,9 @@ async function withDbRetry<T>(operation: (db: MySql2Database) => Promise<T>): Pr
     if (!isConnectionError(error)) {
       throw error;
     }
-    console.warn("[Database] Connection error, resetting pool and retrying once");
+    console.warn(
+      "[Database] Connection error, resetting pool and retrying once"
+    );
     resetDbConnection();
     const retryDb = await getDb();
     if (!retryDb) {
@@ -102,42 +112,48 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     throw new Error("User openId is required for upsert");
   }
   try {
-    await withDbRetry(async (db) => {
-    const values: InsertUser = { openId: user.openId };
-    const updateSet: Record<string, unknown> = {};
-    const textFields = ["name", "email", "loginMethod", "avatarUrl", "bio"] as const;
-    type TextField = (typeof textFields)[number];
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-    textFields.forEach(assignNullable);
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (
-      ENV.ownerGithubId &&
-      user.openId === `github:${ENV.ownerGithubId}`
-    ) {
-      values.role = "admin";
-      updateSet.role = "admin";
-    }
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await withDbRetry(async db => {
+      const values: InsertUser = { openId: user.openId };
+      const updateSet: Record<string, unknown> = {};
+      const textFields = [
+        "name",
+        "email",
+        "loginMethod",
+        "avatarUrl",
+        "bio",
+      ] as const;
+      type TextField = (typeof textFields)[number];
+      const assignNullable = (field: TextField) => {
+        const value = user[field];
+        if (value === undefined) return;
+        const normalized = value ?? null;
+        values[field] = normalized;
+        updateSet[field] = normalized;
+      };
+      textFields.forEach(assignNullable);
+      if (user.lastSignedIn !== undefined) {
+        values.lastSignedIn = user.lastSignedIn;
+        updateSet.lastSignedIn = user.lastSignedIn;
+      }
+      if (user.role !== undefined) {
+        values.role = user.role;
+        updateSet.role = user.role;
+      } else if (
+        ENV.ownerGithubId &&
+        user.openId === `github:${ENV.ownerGithubId}`
+      ) {
+        values.role = "admin";
+        updateSet.role = "admin";
+      }
+      if (!values.lastSignedIn) {
+        values.lastSignedIn = new Date();
+      }
+      if (Object.keys(updateSet).length === 0) {
+        updateSet.lastSignedIn = new Date();
+      }
+      await db.insert(users).values(values).onDuplicateKeyUpdate({
+        set: updateSet,
+      });
     });
 
     try {
@@ -153,8 +169,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   try {
-    const result = await withDbRetry((db) =>
-      db.select().from(users).where(eq(users.openId, openId)).limit(1),
+    const result = await withDbRetry(db =>
+      db.select().from(users).where(eq(users.openId, openId)).limit(1)
     );
     return result.length > 0 ? result[0] : undefined;
   } catch (error) {
@@ -172,13 +188,14 @@ export async function getUserById(id: number) {
 
 export async function updateUserProfile(
   userId: number,
-  data: { name?: string; bio?: string }
+  data: { name?: string; bio?: string; avatarUrl?: string | null }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
   if (data.name !== undefined) updateData.name = data.name;
   if (data.bio !== undefined) updateData.bio = data.bio;
+  if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
   if (Object.keys(updateData).length > 0) {
     await db.update(users).set(updateData).where(eq(users.id, userId));
   }
@@ -201,9 +218,7 @@ export async function syncUserRoleFromConfig(openId: string) {
 
   const shouldBeAdmin =
     isAdminUserId(row.id) ||
-    Boolean(
-      ENV.ownerGithubId && row.openId === `github:${ENV.ownerGithubId}`,
-    );
+    Boolean(ENV.ownerGithubId && row.openId === `github:${ENV.ownerGithubId}`);
 
   if (shouldBeAdmin && row.role !== "admin") {
     await db.update(users).set({ role: "admin" }).where(eq(users.id, row.id));
@@ -260,6 +275,7 @@ export async function getPostById(id: number) {
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
     })
     .from(posts)
     .leftJoin(users, eq(posts.userId, users.id))
@@ -282,6 +298,7 @@ export async function getLatestPosts(limit: number = 3) {
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
     })
     .from(posts)
     .leftJoin(users, eq(posts.userId, users.id))
@@ -302,7 +319,8 @@ export async function listPosts(opts?: {
   const page = opts?.page ?? 1;
   const pageSize = opts?.pageSize ?? 10;
   const offset = (page - 1) * pageSize;
-  const order = opts?.sortOrder === "asc" ? asc(posts.updatedAt) : desc(posts.updatedAt);
+  const order =
+    opts?.sortOrder === "asc" ? asc(posts.updatedAt) : desc(posts.updatedAt);
 
   const conditions = [];
   if (opts?.authorId) {
@@ -329,6 +347,7 @@ export async function listPosts(opts?: {
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
         authorName: users.name,
+        authorAvatarUrl: users.avatarUrl,
       })
       .from(posts)
       .leftJoin(users, eq(posts.userId, users.id))
@@ -359,6 +378,7 @@ export async function getPostsByUserId(userId: number) {
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
     })
     .from(posts)
     .leftJoin(users, eq(posts.userId, users.id))
@@ -412,10 +432,7 @@ export async function deletePost(id: number) {
 export async function getGithubReposByUserId(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(githubRepos)
-    .where(eq(githubRepos.userId, userId));
+  return db.select().from(githubRepos).where(eq(githubRepos.userId, userId));
 }
 
 export async function addGithubRepo(data: {
@@ -484,7 +501,7 @@ export async function listCompletedApps(opts?: {
         like(completedApps.title, searchPattern),
         like(completedApps.description, searchPattern),
         like(completedApps.repoOwner, searchPattern),
-        like(completedApps.repoName, searchPattern),
+        like(completedApps.repoName, searchPattern)
       )!
     );
   }
@@ -504,6 +521,7 @@ export async function listCompletedApps(opts?: {
         createdAt: completedApps.createdAt,
         updatedAt: completedApps.updatedAt,
         authorName: users.name,
+        authorAvatarUrl: users.avatarUrl,
       })
       .from(completedApps)
       .leftJoin(users, eq(completedApps.userId, users.id))
@@ -535,6 +553,7 @@ export async function getCompletedAppById(id: number) {
       createdAt: completedApps.createdAt,
       updatedAt: completedApps.updatedAt,
       authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
     })
     .from(completedApps)
     .leftJoin(users, eq(completedApps.userId, users.id))
