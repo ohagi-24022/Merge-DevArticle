@@ -4,6 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CompletedAppIcon from "@/components/CompletedAppIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ export default function EditCompletedApp() {
       }
       setLocation(`/apps/${appId}`);
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   useEffect(() => {
@@ -67,7 +68,10 @@ export default function EditCompletedApp() {
             <p className="text-muted-foreground mb-6">
               完成アプリを編集するにはログインしてください
             </p>
-            <Button onClick={() => (window.location.href = getLoginUrl())} className="gap-2">
+            <Button
+              onClick={() => (window.location.href = getLoginUrl())}
+              className="gap-2"
+            >
               <LogIn className="h-4 w-4" />
               ログインする
             </Button>
@@ -100,9 +104,13 @@ export default function EditCompletedApp() {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">完成アプリが見つかりませんでした</p>
+            <p className="text-muted-foreground mb-4">
+              完成アプリが見つかりませんでした
+            </p>
             <Link href="/apps">
-              <Button variant="outline" className="bg-transparent">完成アプリ一覧に戻る</Button>
+              <Button variant="outline" className="bg-transparent">
+                完成アプリ一覧に戻る
+              </Button>
             </Link>
           </div>
         </main>
@@ -117,9 +125,13 @@ export default function EditCompletedApp() {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">この完成アプリを編集する権限がありません</p>
+            <p className="text-muted-foreground mb-4">
+              この完成アプリを編集する権限がありません
+            </p>
             <Link href={`/apps/${appId}`}>
-              <Button variant="outline" className="bg-transparent">完成アプリに戻る</Button>
+              <Button variant="outline" className="bg-transparent">
+                完成アプリに戻る
+              </Button>
             </Link>
           </div>
         </main>
@@ -173,7 +185,7 @@ export default function EditCompletedApp() {
                   <Input
                     id="title"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={e => setTitle(e.target.value)}
                     maxLength={255}
                   />
                 </div>
@@ -183,7 +195,7 @@ export default function EditCompletedApp() {
                     <Input
                       id="repoOwner"
                       value={repoOwner}
-                      onChange={(e) => setRepoOwner(e.target.value)}
+                      onChange={e => setRepoOwner(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -191,7 +203,7 @@ export default function EditCompletedApp() {
                     <Input
                       id="repoName"
                       value={repoName}
-                      onChange={(e) => setRepoName(e.target.value)}
+                      onChange={e => setRepoName(e.target.value)}
                     />
                   </div>
                 </div>
@@ -200,16 +212,29 @@ export default function EditCompletedApp() {
                   <Input
                     id="appUrl"
                     value={appUrl}
-                    onChange={(e) => setAppUrl(e.target.value)}
+                    onChange={e => setAppUrl(e.target.value)}
                     placeholder="https://example.com"
                   />
+                  {appUrl.trim() && (
+                    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
+                      <CompletedAppIcon
+                        appUrl={appUrl.trim()}
+                        title={title || "Application"}
+                        size={64}
+                        className="size-10 rounded-lg"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        URL icon preview
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">紹介文</Label>
                   <Textarea
                     id="description"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={e => setDescription(e.target.value)}
                     rows={16}
                     className="resize-y text-sm"
                   />
@@ -218,7 +243,11 @@ export default function EditCompletedApp() {
                 <div className="flex justify-end">
                   <Button
                     type="submit"
-                    disabled={updateApp.isPending || !title.trim() || !description.trim()}
+                    disabled={
+                      updateApp.isPending ||
+                      !title.trim() ||
+                      !description.trim()
+                    }
                     className="gap-2"
                   >
                     {updateApp.isPending ? (

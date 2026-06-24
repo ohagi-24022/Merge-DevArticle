@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,6 +25,7 @@ import {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CompletedAppCard from "@/components/CompletedAppCard";
+import CompletedAppIcon from "@/components/CompletedAppIcon";
 import PostManageCard from "@/components/PostManageCard";
 import {
   Table,
@@ -28,7 +35,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, GitBranch, Plus, Trash2, Loader2, LogIn, Save, Shield, Eye, Sparkles, Rocket } from "lucide-react";
+import {
+  User,
+  GitBranch,
+  Plus,
+  Trash2,
+  Loader2,
+  LogIn,
+  Save,
+  Shield,
+  Eye,
+  Sparkles,
+  Rocket,
+} from "lucide-react";
 import { MergeLogo } from "@/components/MergeLogo";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -64,10 +83,8 @@ export default function Account() {
   const { data: repos } = trpc.github.listRepos.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-  const { data: allUsers, isLoading: usersLoading } = trpc.user.listAll.useQuery(
-    undefined,
-    { enabled: isAdmin }
-  );
+  const { data: allUsers, isLoading: usersLoading } =
+    trpc.user.listAll.useQuery(undefined, { enabled: isAdmin });
 
   const utils = trpc.useUtils();
   const updateProfile = trpc.user.updateProfile.useMutation({
@@ -75,7 +92,7 @@ export default function Account() {
       toast.success("プロフィールを更新しました");
       utils.user.getProfile.invalidate();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
   const addRepo = trpc.github.addRepo.useMutation({
     onSuccess: () => {
@@ -83,17 +100,17 @@ export default function Account() {
       setRepoInput("");
       utils.github.listRepos.invalidate();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
   const removeRepo = trpc.github.removeRepo.useMutation({
     onSuccess: () => {
       toast.success("リポジトリを削除しました");
       utils.github.listRepos.invalidate();
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
   const generateAppDescription = trpc.ai.generateAppDescription.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       const lines = data.description.split("\n");
       if (lines[0]?.startsWith("# ")) {
         setAppTitle(lines[0].replace("# ", "").trim());
@@ -103,7 +120,7 @@ export default function Account() {
       }
       toast.success("AI紹介文を生成しました");
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
   const createApp = trpc.completedApp.create.useMutation({
     onSuccess: () => {
@@ -115,7 +132,7 @@ export default function Account() {
       setSelectedAppRepo("none");
       utils.completedApp.listByUser.invalidate({ userId: user?.id ?? 0 });
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
   const deleteApp = trpc.completedApp.delete.useMutation({
     onSuccess: () => {
@@ -123,7 +140,7 @@ export default function Account() {
       utils.completedApp.listByUser.invalidate({ userId: user?.id ?? 0 });
       setDeletingAppId(null);
     },
-    onError: (err) => {
+    onError: err => {
       toast.error(err.message);
       setDeletingAppId(null);
     },
@@ -136,7 +153,7 @@ export default function Account() {
       utils.post.latest.invalidate();
       setDeletingPostId(null);
     },
-    onError: (err) => {
+    onError: err => {
       toast.error(err.message);
       setDeletingPostId(null);
     },
@@ -160,7 +177,9 @@ export default function Account() {
   const handleAddRepo = () => {
     const parts = repoInput.trim().split("/");
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      toast.error("owner/repo 形式で入力してください（例: octocat/Hello-World）");
+      toast.error(
+        "owner/repo 形式で入力してください（例: octocat/Hello-World）"
+      );
       return;
     }
     addRepo.mutate({ repoOwner: parts[0], repoName: parts[1] });
@@ -171,7 +190,9 @@ export default function Account() {
     deletePost.mutate({ id: postId });
   };
 
-  const selectedRepo = repos?.find((repo) => repo.id.toString() === selectedAppRepo);
+  const selectedRepo = repos?.find(
+    repo => repo.id.toString() === selectedAppRepo
+  );
 
   const handleGenerateAppFromGithub = () => {
     if (!selectedRepo) {
@@ -257,7 +278,9 @@ export default function Account() {
               </Badge>
             )}
             {user?.id != null && (
-              <span className="text-sm text-muted-foreground">ID: {user.id}</span>
+              <span className="text-sm text-muted-foreground">
+                ID: {user.id}
+              </span>
             )}
           </div>
 
@@ -268,7 +291,9 @@ export default function Account() {
                   <User className="h-4 w-4 text-primary" />
                   プロフィール
                 </CardTitle>
-                <CardDescription>表示名と自己紹介を設定できます</CardDescription>
+                <CardDescription>
+                  表示名と自己紹介を設定できます
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -276,7 +301,7 @@ export default function Account() {
                   <Input
                     id="name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={e => setName(e.target.value)}
                     placeholder="表示名"
                     maxLength={50}
                   />
@@ -286,7 +311,7 @@ export default function Account() {
                   <Textarea
                     id="bio"
                     value={bio}
-                    onChange={(e) => setBio(e.target.value)}
+                    onChange={e => setBio(e.target.value)}
                     placeholder="自己紹介を書いてください..."
                     rows={4}
                     className="resize-none text-sm"
@@ -309,7 +334,11 @@ export default function Account() {
                   </Button>
                   {user?.id && (
                     <Link href={`/users/${user.id}`}>
-                      <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 bg-transparent"
+                      >
                         <Eye className="h-4 w-4" />
                         公開プロフィールを確認
                       </Button>
@@ -333,10 +362,10 @@ export default function Account() {
                 <div className="flex gap-2">
                   <Input
                     value={repoInput}
-                    onChange={(e) => setRepoInput(e.target.value)}
+                    onChange={e => setRepoInput(e.target.value)}
                     placeholder="owner/repo"
                     className="flex-1"
-                    onKeyDown={(e) => {
+                    onKeyDown={e => {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         handleAddRepo();
@@ -359,7 +388,7 @@ export default function Account() {
                 </div>
                 {repos && repos.length > 0 ? (
                   <div className="space-y-2">
-                    {repos.map((repo) => (
+                    {repos.map(repo => (
                       <div
                         key={repo.id}
                         className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50 border border-border/30"
@@ -413,13 +442,16 @@ export default function Account() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>GitHubリポジトリ（任意）</Label>
-                  <Select value={selectedAppRepo} onValueChange={setSelectedAppRepo}>
+                  <Select
+                    value={selectedAppRepo}
+                    onValueChange={setSelectedAppRepo}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="リポジトリを選択" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">使わない</SelectItem>
-                      {repos?.map((repo) => (
+                      {repos?.map(repo => (
                         <SelectItem key={repo.id} value={repo.id.toString()}>
                           {repo.repoOwner}/{repo.repoName}
                         </SelectItem>
@@ -432,8 +464,10 @@ export default function Account() {
                   <Textarea
                     id="appNotes"
                     value={appNotes}
-                    onChange={(e) => setAppNotes(e.target.value)}
-                    placeholder={"どんなアプリか、できること、工夫した点など\nGitHub未登録のアプリはここに詳しく書いてください"}
+                    onChange={e => setAppNotes(e.target.value)}
+                    placeholder={
+                      "どんなアプリか、できること、工夫した点など\nGitHub未登録のアプリはここに詳しく書いてください"
+                    }
                     rows={7}
                     className="resize-none text-sm"
                   />
@@ -457,7 +491,9 @@ export default function Account() {
                     type="button"
                     variant="outline"
                     onClick={handleGenerateAppFromNotes}
-                    disabled={generateAppDescription.isPending || !appNotes.trim()}
+                    disabled={
+                      generateAppDescription.isPending || !appNotes.trim()
+                    }
                     size="sm"
                     className="gap-2 bg-transparent"
                   >
@@ -485,7 +521,7 @@ export default function Account() {
                   <Input
                     id="appTitle"
                     value={appTitle}
-                    onChange={(e) => setAppTitle(e.target.value)}
+                    onChange={e => setAppTitle(e.target.value)}
                     placeholder="アプリ名"
                     maxLength={255}
                   />
@@ -495,16 +531,29 @@ export default function Account() {
                   <Input
                     id="appUrl"
                     value={appUrl}
-                    onChange={(e) => setAppUrl(e.target.value)}
+                    onChange={e => setAppUrl(e.target.value)}
                     placeholder="https://example.com"
                   />
+                  {appUrl.trim() && (
+                    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
+                      <CompletedAppIcon
+                        appUrl={appUrl.trim()}
+                        title={appTitle || "Application"}
+                        size={64}
+                        className="size-10 rounded-lg"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        URL icon preview
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="appDescription">紹介文</Label>
                   <Textarea
                     id="appDescription"
                     value={appDescription}
-                    onChange={(e) => setAppDescription(e.target.value)}
+                    onChange={e => setAppDescription(e.target.value)}
                     placeholder="アプリ紹介文を書いてください..."
                     rows={10}
                     className="resize-y text-sm"
@@ -514,7 +563,11 @@ export default function Account() {
                   <Button
                     type="button"
                     onClick={handleCreateApp}
-                    disabled={createApp.isPending || !appTitle.trim() || !appDescription.trim()}
+                    disabled={
+                      createApp.isPending ||
+                      !appTitle.trim() ||
+                      !appDescription.trim()
+                    }
                     className="gap-2"
                   >
                     {createApp.isPending ? (
@@ -531,7 +584,7 @@ export default function Account() {
 
           {myApps && myApps.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
-              {myApps.map((app) => (
+              {myApps.map(app => (
                 <CompletedAppCard
                   key={app.id}
                   id={app.id}
@@ -561,7 +614,7 @@ export default function Account() {
 
           {myPosts && myPosts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {myPosts.map((post) => (
+              {myPosts.map(post => (
                 <PostManageCard
                   key={post.id}
                   id={post.id}
@@ -571,7 +624,9 @@ export default function Account() {
                   viewCount={post.viewCount}
                   createdAt={post.createdAt}
                   onDelete={() => handleDeletePost(post.id)}
-                  isDeleting={deletingPostId === post.id && deletePost.isPending}
+                  isDeleting={
+                    deletingPostId === post.id && deletePost.isPending
+                  }
                 />
               ))}
             </div>
@@ -616,9 +671,11 @@ export default function Account() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {allUsers.map((u) => (
+                        {allUsers.map(u => (
                           <TableRow key={u.id}>
-                            <TableCell className="font-mono text-sm">{u.id}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {u.id}
+                            </TableCell>
                             <TableCell>{u.name || "（未設定）"}</TableCell>
                             <TableCell>
                               {u.role === "admin" ? (
@@ -632,10 +689,14 @@ export default function Account() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {new Date(u.createdAt).toLocaleDateString("ja-JP")}
+                              {new Date(u.createdAt).toLocaleDateString(
+                                "ja-JP"
+                              )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {new Date(u.lastSignedIn).toLocaleDateString("ja-JP")}
+                              {new Date(u.lastSignedIn).toLocaleDateString(
+                                "ja-JP"
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

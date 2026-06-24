@@ -1,7 +1,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, ExternalLink, GitBranch, Pencil, Trash2, User } from "lucide-react";
+import CompletedAppIcon from "@/components/CompletedAppIcon";
+import {
+  CalendarDays,
+  ExternalLink,
+  GitBranch,
+  Pencil,
+  Trash2,
+  User,
+} from "lucide-react";
 import { Link } from "wouter";
 
 type CompletedAppCardProps = {
@@ -34,7 +42,9 @@ export default function CompletedAppCard({
   isDeleting,
 }: CompletedAppCardProps) {
   const repoUrl =
-    repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}` : null;
+    repoOwner && repoName
+      ? `https://github.com/${repoOwner}/${repoName}`
+      : null;
   const excerptSource = description
     .replace(/^# .+$/gm, "")
     .replace(/[#*`>\-[\]()]/g, "")
@@ -49,18 +59,35 @@ export default function CompletedAppCard({
     <Card className="group border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-200 h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <Link href={`/apps/${id}`}>
-              <h3 className="text-base font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                {title}
-              </h3>
-            </Link>
-            {repoOwner && repoName && (
-              <Badge variant="outline" className="mt-2 gap-1 text-xs max-w-full">
-                <GitBranch className="h-3 w-3" />
-                <span className="truncate">{repoOwner}/{repoName}</span>
-              </Badge>
+          <div className="flex min-w-0 items-start gap-3">
+            {appUrl && (
+              <Link href={`/apps/${id}`} className="shrink-0">
+                <CompletedAppIcon
+                  appUrl={appUrl}
+                  title={title}
+                  size={64}
+                  className="size-12 rounded-xl"
+                />
+              </Link>
             )}
+            <div className="min-w-0">
+              <Link href={`/apps/${id}`}>
+                <h3 className="text-base font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                  {title}
+                </h3>
+              </Link>
+              {repoOwner && repoName && (
+                <Badge
+                  variant="outline"
+                  className="mt-2 gap-1 text-xs max-w-full"
+                >
+                  <GitBranch className="h-3 w-3" />
+                  <span className="truncate">
+                    {repoOwner}/{repoName}
+                  </span>
+                </Badge>
+              )}
+            </div>
           </div>
           {canDelete && onDelete && (
             <div className="flex shrink-0 gap-1">
@@ -121,7 +148,11 @@ export default function CompletedAppCard({
           <div className="mt-auto flex flex-wrap gap-2 pt-3 border-t border-border/40">
             {appUrl && (
               <a href={appUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="gap-1.5 bg-transparent">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 bg-transparent"
+                >
                   <ExternalLink className="h-3.5 w-3.5" />
                   アプリを見る
                 </Button>
