@@ -6,7 +6,7 @@
  * または管理者画面の利用者一覧を参照。
  */
 export const ADMIN_USER_IDS: readonly number[] = [
-  1,3630020// 例: 1,
+  1,3630020,3420020// 例: 1,
 ];
 
 export function isAdminUserId(userId: number): boolean {
