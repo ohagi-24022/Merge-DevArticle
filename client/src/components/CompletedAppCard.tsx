@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, ExternalLink, GitBranch, Trash2, User } from "lucide-react";
+import { CalendarDays, ExternalLink, GitBranch, Pencil, Trash2, User } from "lucide-react";
 import { Link } from "wouter";
 
 type CompletedAppCardProps = {
@@ -63,16 +63,28 @@ export default function CompletedAppCard({
             )}
           </div>
           {canDelete && onDelete && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              disabled={isDeleting}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 gap-1">
+              <Link href={`/apps/${id}/edit`}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>

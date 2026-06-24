@@ -1,16 +1,18 @@
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, CalendarDays, ExternalLink, GitBranch, User } from "lucide-react";
+import { ArrowLeft, CalendarDays, ExternalLink, GitBranch, PenLine, User } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { Streamdown } from "streamdown";
 
 export default function CompletedAppDetail() {
   const params = useParams<{ id: string }>();
   const appId = Number(params.id);
+  const { user } = useAuth();
   const { data: app, isLoading } = trpc.completedApp.getById.useQuery(
     { id: appId },
     { enabled: !isNaN(appId) }
@@ -20,6 +22,7 @@ export default function CompletedAppDetail() {
     app?.repoOwner && app.repoName
       ? `https://github.com/${app.repoOwner}/${app.repoName}`
       : null;
+  const canManage = app && user && (app.userId === user.id || user.role === "admin");
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -76,8 +79,16 @@ export default function CompletedAppDetail() {
                     </Badge>
                   )}
                 </div>
-                {(app.appUrl || repoUrl) && (
+                {(app.appUrl || repoUrl || canManage) && (
                   <div className="flex flex-wrap gap-2 mt-5">
+                    {canManage && (
+                      <Link href={`/apps/${app.id}/edit`}>
+                        <Button variant="outline" size="sm" className="gap-1.5 bg-transparent">
+                          <PenLine className="h-3.5 w-3.5" />
+                          編集
+                        </Button>
+                      </Link>
+                    )}
                     {app.appUrl && (
                       <a href={app.appUrl} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" className="gap-1.5">

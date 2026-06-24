@@ -567,6 +567,33 @@ export async function createCompletedApp(data: {
   return { id: result[0].insertId, createdAt: now };
 }
 
+export async function updateCompletedApp(
+  id: number,
+  userId: number,
+  data: {
+    title: string;
+    description: string;
+    repoOwner?: string | null;
+    repoName?: string | null;
+    appUrl?: string | null;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(completedApps)
+    .set({
+      title: data.title,
+      description: data.description,
+      repoOwner: data.repoOwner ?? null,
+      repoName: data.repoName ?? null,
+      appUrl: data.appUrl ?? null,
+      updatedAt: Date.now(),
+    })
+    .where(eq(completedApps.id, id));
+  return { success: true };
+}
+
 export async function deleteCompletedApp(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

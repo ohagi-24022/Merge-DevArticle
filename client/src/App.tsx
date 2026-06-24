@@ -13,6 +13,7 @@ import Account from "./pages/Account";
 import UserProfile from "./pages/UserProfile";
 import CompletedAppList from "./pages/CompletedAppList";
 import CompletedAppDetail from "./pages/CompletedAppDetail";
+import EditCompletedApp from "./pages/EditCompletedApp";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/posts" component={PostList} />
       <Route path="/posts/:id" component={PostDetail} />
       <Route path="/apps" component={CompletedAppList} />
+      <Route path="/apps/:id/edit" component={EditCompletedApp} />
       <Route path="/apps/:id" component={CompletedAppDetail} />
       <Route path="/new" component={NewPost} />
       <Route path="/edit/:id" component={EditPost} />

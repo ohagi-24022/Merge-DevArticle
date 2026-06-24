@@ -51,6 +51,8 @@ import {
 
   createCompletedApp,
 
+  updateCompletedApp,
+
   deleteCompletedApp,
 
 } from "./db";
@@ -832,6 +834,58 @@ ${input.notes}`;
         return createCompletedApp({
 
           userId: ctx.user.id,
+
+          title: input.title,
+
+          description: input.description,
+
+          repoOwner: input.repoOwner,
+
+          repoName: input.repoName,
+
+          appUrl: input.appUrl,
+
+        });
+
+      }),
+
+    update: protectedProcedure
+
+      .input(z.object({
+
+        id: z.number(),
+
+        title: z.string().min(1).max(255),
+
+        description: z.string().min(1),
+
+        repoOwner: z.string().min(1).max(255).nullable().optional(),
+
+        repoName: z.string().min(1).max(255).nullable().optional(),
+
+        appUrl: z.string().url().nullable().optional(),
+
+      }))
+
+      .mutation(async ({ ctx, input }) => {
+
+        const app = await getCompletedAppById(input.id);
+
+        if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+
+        if (app.userId !== ctx.user.id && ctx.user.role !== "admin") {
+
+          throw new TRPCError({
+
+            code: "FORBIDDEN",
+
+            message: "You can only edit your own applications",
+
+          });
+
+        }
+
+        return updateCompletedApp(input.id, ctx.user.id, {
 
           title: input.title,
 
