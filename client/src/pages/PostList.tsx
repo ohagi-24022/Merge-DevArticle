@@ -38,6 +38,32 @@ export default function PostList() {
   const { data: allUsers } = trpc.user.listAll.useQuery();
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
+  const renderPagination = (className: string) =>
+    totalPages > 1 ? (
+      <div className={`flex items-center justify-center gap-2 ${className}`}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => setPage(p => p - 1)}
+          className="bg-transparent"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm text-muted-foreground px-3">
+          {page} / {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => setPage(p => p + 1)}
+          className="bg-transparent"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    ) : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -114,6 +140,8 @@ export default function PostList() {
             </div>
           ) : data && data.posts.length > 0 ? (
             <>
+              {renderPagination("mb-6")}
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {data.posts.map(post => (
                   <PostCard
@@ -131,32 +159,7 @@ export default function PostList() {
                 ))}
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-10">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage(p => p - 1)}
-                    className="bg-transparent"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm text-muted-foreground px-3">
-                    {page} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                    className="bg-transparent"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              {renderPagination("mt-10")}
             </>
           ) : (
             <div className="text-center py-20 border border-dashed rounded-xl">
